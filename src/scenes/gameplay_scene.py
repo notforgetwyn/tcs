@@ -4,7 +4,6 @@ import pygame
 
 from src.constants import (
     BACKGROUND_COLOR,
-    DEFAULT_MOVE_INTERVAL_MS,
     FOOD_COLOR,
     GAME_OVER_COLOR,
     GRID_COLOR,
@@ -22,36 +21,52 @@ from src.constants import (
     WINDOW_WIDTH,
 )
 from src.models.food import Food
+from src.models.game_state import GameState
 from src.models.snake import Snake
 
 
 class GameplayScene:
-    """Minimal playable game scene used for the MVP milestone."""
+    """Playable gameplay scene with autosave support."""
 
-    def __init__(self, app) -> None:
+    def __init__(self, app, game_state: GameState | None = None) -> None:
         self.app = app
         self.font = pygame.font.SysFont(None, 32)
         self.large_font = pygame.font.SysFont(None, 56)
-        self.move_interval_ms = self.app.settings_service.load().move_interval_ms
         self.elapsed_since_move = 0
         self.is_game_over = False
         self.score = 0
 
-        self.snake = Snake()
-        self.food = Food()
-        self.food.respawn(set(self.snake.body))
+        if game_state is None:
+            self.move_interval_ms = self.app.settings_service.load().move_interval_ms
+            self.snake = Snake()
+            self.food = Food()
+            self.food.respawn(set(self.snake.body))
+            self._persist_progress()
+        else:
+            self.move_interval_ms = game_state.move_interval_ms
+            self.score = game_state.score
+            self.snake = Snake(
+                body=list(game_state.snake_body),
+                direction=game_state.direction,
+                pending_growth=game_state.pending_growth,
+            )
+            self.food = Food(position=game_state.food_position)
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type != pygame.KEYDOWN:
             return True
 
         if event.key == pygame.K_ESCAPE:
+            if self.is_game_over:
+                self.app.save_service.clear()
+            else:
+                self._persist_progress()
             self.app.change_scene("menu")
             return True
 
         if self.is_game_over:
             if event.key == pygame.K_r:
-                self.app.change_scene("gameplay")
+                self.app.start_new_game()
             return True
 
         direction_map = {
@@ -81,6 +96,8 @@ class GameplayScene:
         self.elapsed_since_move = 0
         self.snake.move()
         self._handle_collisions()
+        if not self.is_game_over:
+            self._persist_progress()
 
     def render(self, screen: pygame.Surface) -> None:
         screen.fill(BACKGROUND_COLOR)
@@ -96,11 +113,11 @@ class GameplayScene:
         head_x, head_y = self.snake.get_head()
 
         if not (0 <= head_x < GRID_WIDTH and 0 <= head_y < GRID_HEIGHT):
-            self.is_game_over = True
+            self._handle_game_over()
             return
 
         if self.snake.collides_with_self():
-            self.is_game_over = True
+            self._handle_game_over()
             return
 
         if self.snake.get_head() == self.food.position:
@@ -109,7 +126,7 @@ class GameplayScene:
             try:
                 self.food.respawn(set(self.snake.body))
             except ValueError:
-                self.is_game_over = True
+                self._handle_game_over()
 
     def _draw_grid(self, screen: pygame.Surface) -> None:
         for x in range(0, WINDOW_WIDTH, GRID_SIZE):
@@ -156,3 +173,19 @@ class GameplayScene:
         screen.blit(title_surface, title_rect)
         screen.blit(subtitle_surface, subtitle_rect)
         screen.blit(score_surface, score_rect)
+
+    def _persist_progress(self) -> None:
+        self.app.save_service.save(
+            GameState(
+                snake_body=list(self.snake.body),
+                direction=self.snake.direction,
+                food_position=self.food.position,
+                score=self.score,
+                move_interval_ms=self.move_interval_ms,
+                pending_growth=self.snake.pending_growth,
+            )
+        )
+
+    def _handle_game_over(self) -> None:
+        self.is_game_over = True
+        self.app.save_service.clear()

@@ -15,7 +15,7 @@ class MenuScene:
         self.hint_font = pygame.font.SysFont(None, 28)
         self.options = [
             ("开始游戏", "gameplay"),
-            ("继续游戏", "continue_unavailable"),
+            ("继续游戏", "continue_game"),
             ("设置", "settings"),
             ("退出游戏", "exit"),
         ]
@@ -63,6 +63,9 @@ class MenuScene:
 
     def _activate_selected(self) -> None:
         _, action = self.options[self.selected_index]
+        if action == "gameplay":
+            self.app.start_new_game()
+            return
         if action == "exit":
             self.app.stop()
             return

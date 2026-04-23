@@ -6,7 +6,9 @@ import pygame
 
 from src.constants import FPS, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH
 from src.core.file_manager import FileManager
+from src.core.save_service import SaveService
 from src.core.settings_service import SettingsService
+from src.models.game_state import GameState
 from src.scenes.gameplay_scene import GameplayScene
 from src.scenes.menu_scene import MenuScene
 from src.scenes.placeholder_scene import PlaceholderScene
@@ -24,6 +26,7 @@ class App:
         self.is_running = True
         self.file_manager = FileManager(Path(__file__).resolve().parents[1])
         self.settings_service = SettingsService(self.file_manager)
+        self.save_service = SaveService(self.file_manager)
         self.scenes = {
             "menu": MenuScene(self),
             "gameplay": GameplayScene(self),
@@ -31,7 +34,7 @@ class App:
             "continue_unavailable": PlaceholderScene(
                 self,
                 title="继续游戏",
-                message="存档功能将在下一阶段实现。",
+                message="当前没有可继续的存档。",
             ),
         }
         self.scene = self.scenes["menu"]
@@ -61,6 +64,9 @@ class App:
     def change_scene(self, scene_name: str) -> None:
         if scene_name == "gameplay":
             self.scenes["gameplay"] = GameplayScene(self)
+        elif scene_name == "continue_game":
+            self._continue_game()
+            return
         elif scene_name == "settings":
             self.scenes["settings"] = SettingsScene(self)
         target_scene = self.scenes.get(scene_name)
@@ -69,3 +75,27 @@ class App:
 
     def stop(self) -> None:
         self.is_running = False
+
+    def start_new_game(self) -> None:
+        self.save_service.clear()
+        self.scenes["gameplay"] = GameplayScene(self)
+        self.scene = self.scenes["gameplay"]
+
+    def load_gameplay_from_state(self, game_state: GameState) -> None:
+        self.scenes["gameplay"] = GameplayScene(self, game_state=game_state)
+        self.scene = self.scenes["gameplay"]
+
+    def show_continue_unavailable(self, message: str = "当前没有可继续的存档。") -> None:
+        self.scenes["continue_unavailable"] = PlaceholderScene(
+            self,
+            title="继续游戏",
+            message=message,
+        )
+        self.scene = self.scenes["continue_unavailable"]
+
+    def _continue_game(self) -> None:
+        loaded = self.save_service.load()
+        if loaded is None:
+            self.show_continue_unavailable()
+            return
+        self.load_gameplay_from_state(loaded)
