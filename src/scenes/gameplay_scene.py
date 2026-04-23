@@ -129,25 +129,25 @@ class GameplayScene:
         pygame.draw.rect(screen, FOOD_COLOR, rect)
 
     def _draw_hud(self, screen: pygame.Surface) -> None:
-        score_surface = self.font.render(f"Score: {self.score}", True, TEXT_COLOR)
+        score_surface = self.font.render(f"分数: {self.score}", True, TEXT_COLOR)
         screen.blit(score_surface, (16, 12))
 
         if not self.is_game_over:
             hint_surface = self.font.render(
-                "Move: WASD / Arrows  Menu: ESC",
+                "移动: WASD / 方向键  返回菜单: ESC",
                 True,
                 TEXT_COLOR,
             )
             screen.blit(hint_surface, (16, 42))
 
     def _draw_game_over(self, screen: pygame.Surface) -> None:
-        title_surface = self.large_font.render("Game Over", True, GAME_OVER_COLOR)
+        title_surface = self.large_font.render("游戏结束", True, GAME_OVER_COLOR)
         subtitle_surface = self.font.render(
-            "Press R to restart or ESC to menu",
+            "按 R 重新开始，按 ESC 返回菜单",
             True,
             TEXT_COLOR,
         )
-        score_surface = self.font.render(f"Final Score: {self.score}", True, TEXT_COLOR)
+        score_surface = self.font.render(f"最终分数: {self.score}", True, TEXT_COLOR)
 
         title_rect = title_surface.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 - 40))
         subtitle_rect = subtitle_surface.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 10))

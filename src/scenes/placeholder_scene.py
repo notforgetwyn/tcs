@@ -28,7 +28,7 @@ class PlaceholderScene:
 
         title_surface = self.title_font.render(self.title, True, TEXT_COLOR)
         message_surface = self.body_font.render(self.message, True, TEXT_COLOR)
-        hint_surface = self.body_font.render("Press Enter or ESC to return", True, TEXT_COLOR)
+        hint_surface = self.body_font.render("按 Enter 或 ESC 返回", True, TEXT_COLOR)
 
         title_rect = title_surface.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 - 70))
         message_rect = message_surface.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2))

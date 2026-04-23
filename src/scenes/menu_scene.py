@@ -14,10 +14,10 @@ class MenuScene:
         self.item_font = pygame.font.SysFont(None, 42)
         self.hint_font = pygame.font.SysFont(None, 28)
         self.options = [
-            ("Start Game", "gameplay"),
-            ("Continue Game", "continue_unavailable"),
-            ("Settings", "settings"),
-            ("Exit Game", "exit"),
+            ("开始游戏", "gameplay"),
+            ("继续游戏", "continue_unavailable"),
+            ("设置", "settings"),
+            ("退出游戏", "exit"),
         ]
         self.selected_index = 0
 
@@ -42,7 +42,7 @@ class MenuScene:
     def render(self, screen: pygame.Surface) -> None:
         screen.fill(BACKGROUND_COLOR)
 
-        title_surface = self.title_font.render("Snake Game", True, TEXT_COLOR)
+        title_surface = self.title_font.render("贪吃蛇", True, TEXT_COLOR)
         title_rect = title_surface.get_rect(center=(WINDOW_WIDTH // 2, 120))
         screen.blit(title_surface, title_rect)
 
@@ -54,7 +54,7 @@ class MenuScene:
             screen.blit(item_surface, item_rect)
 
         hint_surface = self.hint_font.render(
-            "Use W/S or Up/Down to select, Enter to confirm",
+            "使用 W/S 或 方向键选择，按 Enter 确认",
             True,
             TEXT_COLOR,
         )

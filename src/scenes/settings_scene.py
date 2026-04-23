@@ -22,7 +22,7 @@ class SettingsScene:
         loaded = self.app.settings_service.load()
         self.settings = Settings(move_interval_ms=loaded.move_interval_ms)
         self.selected_index = 0
-        self.status_message = "Left/Right adjust speed, Enter save"
+        self.status_message = "左右键调整速度，Enter 保存"
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type != pygame.KEYDOWN:
@@ -39,7 +39,7 @@ class SettingsScene:
         elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
             if self.selected_index == 0:
                 self.app.settings_service.save(self.settings)
-                self.status_message = "Settings saved."
+                self.status_message = "设置已保存。"
             else:
                 self.app.change_scene("menu")
         elif event.key == pygame.K_ESCAPE:
@@ -53,7 +53,7 @@ class SettingsScene:
     def render(self, screen: pygame.Surface) -> None:
         screen.fill(BACKGROUND_COLOR)
 
-        title_surface = self.title_font.render("Settings", True, TEXT_COLOR)
+        title_surface = self.title_font.render("设置", True, TEXT_COLOR)
         title_rect = title_surface.get_rect(center=(WINDOW_WIDTH // 2, 120))
         screen.blit(title_surface, title_rect)
 
@@ -64,7 +64,7 @@ class SettingsScene:
         screen.blit(speed_surface, speed_rect)
 
         back_color = (52, 152, 219) if self.selected_index == 1 else TEXT_COLOR
-        back_surface = self.body_font.render("Back To Menu", True, back_color)
+        back_surface = self.body_font.render("返回主菜单", True, back_color)
         back_rect = back_surface.get_rect(center=(WINDOW_WIDTH // 2, 340))
         screen.blit(back_surface, back_rect)
 
@@ -78,19 +78,19 @@ class SettingsScene:
             MIN_MOVE_INTERVAL_MS,
             min(MAX_MOVE_INTERVAL_MS, next_value),
         )
-        self.status_message = "Press Enter to save settings."
+        self.status_message = "按 Enter 保存设置。"
 
     def _build_speed_text(self) -> str:
-        return f"Speed: {self._describe_speed()} ({self.settings.move_interval_ms} ms)"
+        return f"速度: {self._describe_speed()}（{self.settings.move_interval_ms} 毫秒）"
 
     def _describe_speed(self) -> str:
         interval = self.settings.move_interval_ms
         if interval <= 80:
-            return "Very Fast"
+            return "很快"
         if interval <= 120:
-            return "Fast"
+            return "快"
         if interval <= 180:
-            return "Normal"
+            return "正常"
         if interval <= 220:
-            return "Slow"
-        return "Very Slow"
+            return "慢"
+        return "很慢"

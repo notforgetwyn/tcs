@@ -30,8 +30,8 @@ class App:
             "settings": SettingsScene(self),
             "continue_unavailable": PlaceholderScene(
                 self,
-                title="Continue Game",
-                message="Save/load is not available yet.",
+                title="继续游戏",
+                message="存档功能将在下一阶段实现。",
             ),
         }
         self.scene = self.scenes["menu"]
