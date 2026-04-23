@@ -3,6 +3,7 @@ from __future__ import annotations
 import pygame
 
 from src.constants import BACKGROUND_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
+from src.ui.font_manager import get_font
 
 
 class MenuScene:
@@ -10,9 +11,9 @@ class MenuScene:
 
     def __init__(self, app) -> None:
         self.app = app
-        self.title_font = pygame.font.SysFont(None, 72)
-        self.item_font = pygame.font.SysFont(None, 42)
-        self.hint_font = pygame.font.SysFont(None, 28)
+        self.title_font = get_font(72)
+        self.item_font = get_font(42)
+        self.hint_font = get_font(28)
         self.options = [
             ("开始游戏", "gameplay"),
             ("继续游戏", "continue_game"),

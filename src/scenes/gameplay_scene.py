@@ -23,6 +23,7 @@ from src.constants import (
 from src.models.food import Food
 from src.models.game_state import GameState
 from src.models.snake import Snake
+from src.ui.font_manager import get_font
 
 
 class GameplayScene:
@@ -30,8 +31,8 @@ class GameplayScene:
 
     def __init__(self, app, game_state: GameState | None = None) -> None:
         self.app = app
-        self.font = pygame.font.SysFont(None, 32)
-        self.large_font = pygame.font.SysFont(None, 56)
+        self.font = get_font(32)
+        self.large_font = get_font(56)
         self.elapsed_since_move = 0
         self.is_game_over = False
         self.score = 0

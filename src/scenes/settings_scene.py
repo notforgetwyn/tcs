@@ -9,6 +9,7 @@ from src.core.settings_service import (
     MOVE_INTERVAL_STEP_MS,
     Settings,
 )
+from src.ui.font_manager import get_font
 
 
 class SettingsScene:
@@ -16,9 +17,9 @@ class SettingsScene:
 
     def __init__(self, app) -> None:
         self.app = app
-        self.title_font = pygame.font.SysFont(None, 64)
-        self.body_font = pygame.font.SysFont(None, 36)
-        self.small_font = pygame.font.SysFont(None, 28)
+        self.title_font = get_font(64)
+        self.body_font = get_font(36)
+        self.small_font = get_font(28)
         loaded = self.app.settings_service.load()
         self.settings = Settings(move_interval_ms=loaded.move_interval_ms)
         self.selected_index = 0

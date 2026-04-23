@@ -3,6 +3,7 @@ from __future__ import annotations
 import pygame
 
 from src.constants import BACKGROUND_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
+from src.ui.font_manager import get_font
 
 
 class PlaceholderScene:
@@ -12,8 +13,8 @@ class PlaceholderScene:
         self.app = app
         self.title = title
         self.message = message
-        self.title_font = pygame.font.SysFont(None, 64)
-        self.body_font = pygame.font.SysFont(None, 32)
+        self.title_font = get_font(64)
+        self.body_font = get_font(32)
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
