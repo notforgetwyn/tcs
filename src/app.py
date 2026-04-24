@@ -20,6 +20,7 @@ class App:
 
     def __init__(self) -> None:
         pygame.init()
+        pygame.key.set_repeat(180, 120)
         pygame.display.set_caption(WINDOW_TITLE)
         self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         self.clock = pygame.time.Clock()

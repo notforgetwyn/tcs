@@ -2,68 +2,51 @@ from __future__ import annotations
 
 import pygame
 
-from src.constants import BACKGROUND_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
-from src.ui.font_manager import get_font
+from src.constants import BACKGROUND_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
+from src.scenes.base_scene import BaseScene
+from src.ui.menu_list import MenuList
+from src.ui.text import TextBlock
 
 
-class MenuScene:
+class MenuScene(BaseScene):
     """Main menu scene used as the application's entry point."""
 
     def __init__(self, app) -> None:
-        self.app = app
-        self.title_font = get_font(72)
-        self.item_font = get_font(42)
-        self.hint_font = get_font(28)
+        super().__init__(app)
         self.options = [
             ("开始游戏", "gameplay"),
             ("继续游戏", "continue_game"),
             ("设置", "settings"),
             ("退出游戏", "exit"),
         ]
-        self.selected_index = 0
+        self.menu_list = MenuList([label for label, _ in self.options])
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type != pygame.KEYDOWN:
             return True
 
         if event.key in (pygame.K_UP, pygame.K_w):
-            self.selected_index = (self.selected_index - 1) % len(self.options)
+            self.menu_list.move_up()
         elif event.key in (pygame.K_DOWN, pygame.K_s):
-            self.selected_index = (self.selected_index + 1) % len(self.options)
-        elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+            self.menu_list.move_down()
+        elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
             self._activate_selected()
         elif event.key == pygame.K_ESCAPE:
             return False
 
         return True
 
-    def update(self, delta_ms: int) -> None:
-        _ = delta_ms
-
     def render(self, screen: pygame.Surface) -> None:
         screen.fill(BACKGROUND_COLOR)
-
-        title_surface = self.title_font.render("贪吃蛇", True, TEXT_COLOR)
-        title_rect = title_surface.get_rect(center=(WINDOW_WIDTH // 2, 120))
-        screen.blit(title_surface, title_rect)
-
-        for index, (label, _) in enumerate(self.options):
-            is_selected = index == self.selected_index
-            color = (52, 152, 219) if is_selected else TEXT_COLOR
-            item_surface = self.item_font.render(label, True, color)
-            item_rect = item_surface.get_rect(center=(WINDOW_WIDTH // 2, 240 + index * 70))
-            screen.blit(item_surface, item_rect)
-
-        hint_surface = self.hint_font.render(
-            "使用 W/S 或 方向键选择，按 Enter 确认",
-            True,
-            TEXT_COLOR,
+        TextBlock("贪吃蛇", 72).draw_center(screen, (WINDOW_WIDTH // 2, 120))
+        self.menu_list.draw_centered(screen, WINDOW_WIDTH // 2, 240)
+        TextBlock("使用 W/S 或方向键选择，按 Enter 确认", 28).draw_center(
+            screen,
+            (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 70),
         )
-        hint_rect = hint_surface.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT - 70))
-        screen.blit(hint_surface, hint_rect)
 
     def _activate_selected(self) -> None:
-        _, action = self.options[self.selected_index]
+        _, action = self.options[self.menu_list.selected_index]
         if action == "gameplay":
             self.app.start_new_game()
             return

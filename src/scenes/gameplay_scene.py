@@ -23,14 +23,15 @@ from src.constants import (
 from src.models.food import Food
 from src.models.game_state import GameState
 from src.models.snake import Snake
+from src.scenes.base_scene import BaseScene
 from src.ui.font_manager import get_font
 
 
-class GameplayScene:
+class GameplayScene(BaseScene):
     """Playable gameplay scene with autosave support."""
 
     def __init__(self, app, game_state: GameState | None = None) -> None:
-        self.app = app
+        super().__init__(app)
         self.font = get_font(32)
         self.large_font = get_font(56)
         self.elapsed_since_move = 0

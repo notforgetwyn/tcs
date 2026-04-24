@@ -175,3 +175,41 @@
 下一阶段建议：
 - 进入工程优化阶段
 - 优先做场景基类、统一按钮组件、统一文本组件、README 和资源目录规范化
+
+## 阶段 6：工程优化第一小步
+
+当前阶段目标：
+- 抽离场景公共接口和基础 UI 组件，减少场景间重复代码，并修复当前部分场景文件中的中文乱码污染。
+
+本阶段完成功能：
+- 游戏主流程保持可运行
+- 主菜单、设置页、提示页、游戏页改为基于共享组件渲染
+- 修复相关场景中的中文文案乱码
+
+本阶段完成设计：
+- 新增 `BaseScene`，统一所有场景的接口形式
+- 新增 `TextBlock`，统一文本渲染入口
+- 新增 `MenuList`，统一菜单项高亮和上下移动逻辑
+- `MenuScene`、`SettingsScene`、`PlaceholderScene`、`GameplayScene` 改为复用公共组件
+- 场景层和 UI 辅助层的边界比之前更清晰，后续继续加按钮组件和面板组件会更顺手
+
+涉及文件：
+- `src/scenes/base_scene.py`
+- `src/ui/text.py`
+- `src/ui/menu_list.py`
+- `src/app.py`
+- `src/scenes/menu_scene.py`
+- `src/scenes/placeholder_scene.py`
+- `src/scenes/settings_scene.py`
+- `src/scenes/gameplay_scene.py`
+
+验证情况：
+- 已通过语法检查
+- 已能启动进入窗口主循环
+- 已提交并推送到 GitHub
+
+下一阶段建议：
+- 继续工程优化第二小步
+- 增加真正的按钮组件
+- 补 `README.md` 启动说明
+- 规范资源目录与后续 UI 组件结构
