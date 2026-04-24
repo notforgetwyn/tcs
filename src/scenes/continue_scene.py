@@ -3,6 +3,7 @@ from __future__ import annotations
 import pygame
 
 from src.constants import BACKGROUND_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
+from src.core.input_keys import is_down, is_up
 from src.models.game_state import GameState
 from src.scenes.base_scene import BaseScene
 from src.ui.button import Button
@@ -20,9 +21,9 @@ class ContinueScene(BaseScene):
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type == pygame.KEYDOWN:
-            if event.key in (pygame.K_UP, pygame.K_w):
+            if is_up(event):
                 self._move_selection(-1)
-            elif event.key in (pygame.K_DOWN, pygame.K_s):
+            elif is_down(event):
                 self._move_selection(1)
             elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
                 self._activate_selected()

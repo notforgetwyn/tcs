@@ -39,3 +39,13 @@ class MenuList:
             surface = self.font.render(text, True, color)
             rect = surface.get_rect(center=(center_x, start_y + index * self.spacing))
             screen.blit(surface, rect)
+
+    def hit_test(self, position: tuple[int, int], center_x: int, start_y: int) -> int | None:
+        for index, label in enumerate(self.items):
+            text = f"> {label} <" if index == self.selected_index else label
+            surface = self.font.render(text, True, self.normal_color)
+            rect = surface.get_rect(center=(center_x, start_y + index * self.spacing))
+            rect.inflate_ip(80, 20)
+            if rect.collidepoint(position):
+                return index
+        return None

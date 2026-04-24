@@ -20,6 +20,7 @@ from src.constants import (
     WINDOW_HEIGHT,
     WINDOW_WIDTH,
 )
+from src.core.input_keys import is_down, is_left, is_right, is_up
 from src.models.food import Food
 from src.models.game_state import GameState
 from src.models.snake import Snake
@@ -101,14 +102,13 @@ class GameplayScene(BaseScene):
             self._draw_game_over(screen)
 
     def _direction_from_event(self, event: pygame.event.Event) -> tuple[int, int] | None:
-        key_name = getattr(event, "unicode", "").lower()
-        if event.key in (pygame.K_UP, pygame.K_w) or key_name == "w":
+        if is_up(event):
             return UP
-        if event.key in (pygame.K_DOWN, pygame.K_s) or key_name == "s":
+        if is_down(event):
             return DOWN
-        if event.key in (pygame.K_LEFT, pygame.K_a) or key_name == "a":
+        if is_left(event):
             return LEFT
-        if event.key in (pygame.K_RIGHT, pygame.K_d) or key_name == "d":
+        if is_right(event):
             return RIGHT
         return None
 

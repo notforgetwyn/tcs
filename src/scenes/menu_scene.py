@@ -3,6 +3,7 @@ from __future__ import annotations
 import pygame
 
 from src.constants import BACKGROUND_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
+from src.core.input_keys import is_down, is_up
 from src.scenes.base_scene import BaseScene
 from src.ui.menu_list import MenuList
 from src.ui.text import TextBlock
@@ -22,12 +23,16 @@ class MenuScene(BaseScene):
         self.menu_list = MenuList([label for label, _ in self.options])
 
     def handle_event(self, event: pygame.event.Event) -> bool:
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            self._handle_mouse_click(event.pos)
+            return True
+
         if event.type != pygame.KEYDOWN:
             return True
 
-        if self._is_up_input(event):
+        if is_up(event):
             self.menu_list.move_up()
-        elif self._is_down_input(event):
+        elif is_down(event):
             self.menu_list.move_down()
         elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
             self._activate_selected()
@@ -55,8 +60,9 @@ class MenuScene(BaseScene):
             return
         self.app.change_scene(action)
 
-    def _is_up_input(self, event: pygame.event.Event) -> bool:
-        return event.key in (pygame.K_UP, pygame.K_w) or getattr(event, "unicode", "").lower() == "w"
-
-    def _is_down_input(self, event: pygame.event.Event) -> bool:
-        return event.key in (pygame.K_DOWN, pygame.K_s) or getattr(event, "unicode", "").lower() == "s"
+    def _handle_mouse_click(self, position: tuple[int, int]) -> None:
+        selected = self.menu_list.hit_test(position, WINDOW_WIDTH // 2, 240)
+        if selected is None:
+            return
+        self.menu_list.selected_index = selected
+        self._activate_selected()

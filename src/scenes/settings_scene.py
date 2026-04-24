@@ -3,6 +3,7 @@ from __future__ import annotations
 import pygame
 
 from src.constants import BACKGROUND_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
+from src.core.input_keys import is_down, is_left, is_right, is_up
 from src.core.settings_service import (
     MAX_MOVE_INTERVAL_MS,
     MIN_MOVE_INTERVAL_MS,
@@ -29,16 +30,20 @@ class SettingsScene(BaseScene):
         self.status_message = "\u5de6\u53f3\u952e\u8c03\u6574\u901f\u5ea6\uff0cEnter \u4fdd\u5b58"
 
     def handle_event(self, event: pygame.event.Event) -> bool:
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            self._handle_mouse_click(event.pos)
+            return True
+
         if event.type != pygame.KEYDOWN:
             return True
 
-        if self._is_up_input(event):
+        if is_up(event):
             self.menu_list.move_up()
-        elif self._is_down_input(event):
+        elif is_down(event):
             self.menu_list.move_down()
-        elif self.menu_list.selected_index == 0 and self._is_left_input(event):
+        elif self.menu_list.selected_index == 0 and is_left(event):
             self._adjust_speed(MOVE_INTERVAL_STEP_MS)
-        elif self.menu_list.selected_index == 0 and self._is_right_input(event):
+        elif self.menu_list.selected_index == 0 and is_right(event):
             self._adjust_speed(-MOVE_INTERVAL_STEP_MS)
         elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
             if self.menu_list.selected_index == 0:
@@ -91,14 +96,10 @@ class SettingsScene(BaseScene):
             return "\u6162"
         return "\u5f88\u6162"
 
-    def _is_up_input(self, event: pygame.event.Event) -> bool:
-        return event.key in (pygame.K_UP, pygame.K_w) or getattr(event, "unicode", "").lower() == "w"
-
-    def _is_down_input(self, event: pygame.event.Event) -> bool:
-        return event.key in (pygame.K_DOWN, pygame.K_s) or getattr(event, "unicode", "").lower() == "s"
-
-    def _is_left_input(self, event: pygame.event.Event) -> bool:
-        return event.key in (pygame.K_LEFT, pygame.K_a) or getattr(event, "unicode", "").lower() == "a"
-
-    def _is_right_input(self, event: pygame.event.Event) -> bool:
-        return event.key in (pygame.K_RIGHT, pygame.K_d) or getattr(event, "unicode", "").lower() == "d"
+    def _handle_mouse_click(self, position: tuple[int, int]) -> None:
+        selected = self.menu_list.hit_test(position, WINDOW_WIDTH // 2, 260)
+        if selected is None:
+            return
+        self.menu_list.selected_index = selected
+        if selected == 1:
+            self.app.change_scene("menu")
