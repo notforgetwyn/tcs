@@ -18,11 +18,14 @@ class ContinueScene(BaseScene):
         self.game_state = self.app.save_service.load()
         self.buttons = self._build_buttons()
         self.selected_index = 0
+        self.hovered_index: int | None = None
         self.key_edges = system_keys.KeyEdges()
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self._handle_mouse_click(event.pos)
+        elif event.type == pygame.MOUSEMOTION:
+            self._handle_mouse_motion(event.pos)
         return True
 
     def update(self, delta_ms: int) -> None:
@@ -61,7 +64,11 @@ class ContinueScene(BaseScene):
             self._draw_save_summary(screen, self.game_state)
 
         for index, button in enumerate(self.buttons):
-            button.draw(screen, selected=index == self.selected_index)
+            button.draw(
+                screen,
+                selected=index == self.selected_index,
+                hovered=index == self.hovered_index,
+            )
 
         if self.app.input_debug.enabled:
             TextBlock(self.app.input_debug.last_key_text, 20).draw_topleft(screen, (16, WINDOW_HEIGHT - 32))
@@ -117,4 +124,12 @@ class ContinueScene(BaseScene):
             if button.contains(position):
                 self.selected_index = index
                 self._activate_selected()
+                return
+
+    def _handle_mouse_motion(self, position: tuple[int, int]) -> None:
+        self.hovered_index = None
+        for index, button in enumerate(self.buttons):
+            if button.contains(position):
+                self.hovered_index = index
+                self.selected_index = index
                 return
