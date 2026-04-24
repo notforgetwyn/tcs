@@ -20,7 +20,6 @@ class App:
 
     def __init__(self) -> None:
         pygame.init()
-        pygame.key.set_repeat(180, 120)
         pygame.display.set_caption(WINDOW_TITLE)
         self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         self.clock = pygame.time.Clock()
@@ -34,8 +33,8 @@ class App:
             "settings": SettingsScene(self),
             "continue_unavailable": PlaceholderScene(
                 self,
-                title="继续游戏",
-                message="当前没有可继续的存档。",
+                title="\u7ee7\u7eed\u6e38\u620f",
+                message="\u5f53\u524d\u6ca1\u6709\u53ef\u7ee7\u7eed\u7684\u5b58\u6863\u3002",
             ),
         }
         self.scene = self.scenes["menu"]
@@ -86,10 +85,13 @@ class App:
         self.scenes["gameplay"] = GameplayScene(self, game_state=game_state)
         self.scene = self.scenes["gameplay"]
 
-    def show_continue_unavailable(self, message: str = "当前没有可继续的存档。") -> None:
+    def show_continue_unavailable(
+        self,
+        message: str = "\u5f53\u524d\u6ca1\u6709\u53ef\u7ee7\u7eed\u7684\u5b58\u6863\u3002",
+    ) -> None:
         self.scenes["continue_unavailable"] = PlaceholderScene(
             self,
-            title="继续游戏",
+            title="\u7ee7\u7eed\u6e38\u620f",
             message=message,
         )
         self.scene = self.scenes["continue_unavailable"]

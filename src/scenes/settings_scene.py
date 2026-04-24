@@ -14,6 +14,9 @@ from src.ui.menu_list import MenuList
 from src.ui.text import TextBlock
 
 
+NAV_COOLDOWN_MS = 110
+
+
 class SettingsScene(BaseScene):
     """Allows the player to update movement speed and save it."""
 
@@ -21,25 +24,34 @@ class SettingsScene(BaseScene):
         super().__init__(app)
         loaded = self.app.settings_service.load()
         self.settings = Settings(move_interval_ms=loaded.move_interval_ms)
-        self.menu_list = MenuList(["速度", "返回主菜单"], font_size=36, spacing=80)
-        self.status_message = "左右键调整速度，Enter 保存"
+        self.menu_list = MenuList(
+            ["\u901f\u5ea6", "\u8fd4\u56de\u4e3b\u83dc\u5355"],
+            font_size=36,
+            spacing=80,
+        )
+        self.status_message = "\u5de6\u53f3\u952e\u8c03\u6574\u901f\u5ea6\uff0cEnter \u4fdd\u5b58"
+        self.nav_cooldown_ms = 0
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type != pygame.KEYDOWN:
             return True
 
-        if event.key in (pygame.K_UP, pygame.K_w):
+        if self._is_up_input(event):
             self.menu_list.move_up()
-        elif event.key in (pygame.K_DOWN, pygame.K_s):
+            self.nav_cooldown_ms = NAV_COOLDOWN_MS
+        elif self._is_down_input(event):
             self.menu_list.move_down()
-        elif event.key in (pygame.K_LEFT, pygame.K_a) and self.menu_list.selected_index == 0:
+            self.nav_cooldown_ms = NAV_COOLDOWN_MS
+        elif self.menu_list.selected_index == 0 and self._is_left_input(event):
             self._adjust_speed(MOVE_INTERVAL_STEP_MS)
-        elif event.key in (pygame.K_RIGHT, pygame.K_d) and self.menu_list.selected_index == 0:
+            self.nav_cooldown_ms = NAV_COOLDOWN_MS
+        elif self.menu_list.selected_index == 0 and self._is_right_input(event):
             self._adjust_speed(-MOVE_INTERVAL_STEP_MS)
+            self.nav_cooldown_ms = NAV_COOLDOWN_MS
         elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
             if self.menu_list.selected_index == 0:
                 self.app.settings_service.save(self.settings)
-                self.status_message = "设置已保存。"
+                self.status_message = "\u8bbe\u7f6e\u5df2\u4fdd\u5b58\u3002"
             else:
                 self.app.change_scene("menu")
         elif event.key == pygame.K_ESCAPE:
@@ -47,9 +59,28 @@ class SettingsScene(BaseScene):
 
         return True
 
+    def update(self, delta_ms: int) -> None:
+        self.nav_cooldown_ms = max(0, self.nav_cooldown_ms - delta_ms)
+        if self.nav_cooldown_ms > 0:
+            return
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_UP] or keys[pygame.K_w]:
+            self.menu_list.move_up()
+            self.nav_cooldown_ms = NAV_COOLDOWN_MS
+        elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
+            self.menu_list.move_down()
+            self.nav_cooldown_ms = NAV_COOLDOWN_MS
+        elif self.menu_list.selected_index == 0 and (keys[pygame.K_LEFT] or keys[pygame.K_a]):
+            self._adjust_speed(MOVE_INTERVAL_STEP_MS)
+            self.nav_cooldown_ms = NAV_COOLDOWN_MS
+        elif self.menu_list.selected_index == 0 and (keys[pygame.K_RIGHT] or keys[pygame.K_d]):
+            self._adjust_speed(-MOVE_INTERVAL_STEP_MS)
+            self.nav_cooldown_ms = NAV_COOLDOWN_MS
+
     def render(self, screen: pygame.Surface) -> None:
         screen.fill(BACKGROUND_COLOR)
-        TextBlock("设置", 64).draw_center(screen, (WINDOW_WIDTH // 2, 120))
+        TextBlock("\u8bbe\u7f6e", 64).draw_center(screen, (WINDOW_WIDTH // 2, 120))
 
         speed_color = (52, 152, 219) if self.menu_list.selected_index == 0 else TEXT_COLOR
         TextBlock(self._build_speed_text(), 36, speed_color).draw_center(
@@ -58,7 +89,10 @@ class SettingsScene(BaseScene):
         )
 
         back_color = (52, 152, 219) if self.menu_list.selected_index == 1 else TEXT_COLOR
-        TextBlock("返回主菜单", 36, back_color).draw_center(screen, (WINDOW_WIDTH // 2, 340))
+        TextBlock("\u8fd4\u56de\u4e3b\u83dc\u5355", 36, back_color).draw_center(
+            screen,
+            (WINDOW_WIDTH // 2, 340),
+        )
         TextBlock(self.status_message, 28).draw_center(screen, (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 90))
 
     def _adjust_speed(self, delta: int) -> None:
@@ -67,19 +101,31 @@ class SettingsScene(BaseScene):
             MIN_MOVE_INTERVAL_MS,
             min(MAX_MOVE_INTERVAL_MS, next_value),
         )
-        self.status_message = "按 Enter 保存设置。"
+        self.status_message = "\u6309 Enter \u4fdd\u5b58\u8bbe\u7f6e\u3002"
 
     def _build_speed_text(self) -> str:
-        return f"速度: {self._describe_speed()}（{self.settings.move_interval_ms} 毫秒）"
+        return f"\u901f\u5ea6: {self._describe_speed()}\uff08{self.settings.move_interval_ms} \u6beb\u79d2\uff09"
 
     def _describe_speed(self) -> str:
         interval = self.settings.move_interval_ms
         if interval <= 80:
-            return "很快"
+            return "\u5f88\u5feb"
         if interval <= 120:
-            return "快"
+            return "\u5feb"
         if interval <= 180:
-            return "正常"
+            return "\u6b63\u5e38"
         if interval <= 220:
-            return "慢"
-        return "很慢"
+            return "\u6162"
+        return "\u5f88\u6162"
+
+    def _is_up_input(self, event: pygame.event.Event) -> bool:
+        return event.key == pygame.K_UP or getattr(event, "unicode", "").lower() == "w"
+
+    def _is_down_input(self, event: pygame.event.Event) -> bool:
+        return event.key == pygame.K_DOWN or getattr(event, "unicode", "").lower() == "s"
+
+    def _is_left_input(self, event: pygame.event.Event) -> bool:
+        return event.key == pygame.K_LEFT or getattr(event, "unicode", "").lower() == "a"
+
+    def _is_right_input(self, event: pygame.event.Event) -> bool:
+        return event.key == pygame.K_RIGHT or getattr(event, "unicode", "").lower() == "d"

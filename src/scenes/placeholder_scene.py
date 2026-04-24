@@ -16,7 +16,11 @@ class PlaceholderScene(BaseScene):
         self.message = message
 
     def handle_event(self, event: pygame.event.Event) -> bool:
-        if event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
+        if event.type == pygame.KEYDOWN and event.key in (
+            pygame.K_ESCAPE,
+            pygame.K_RETURN,
+            pygame.K_KP_ENTER,
+        ):
             self.app.change_scene("menu")
         return True
 
@@ -26,4 +30,7 @@ class PlaceholderScene(BaseScene):
         center_y = WINDOW_HEIGHT // 2
         TextBlock(self.title, 64).draw_center(screen, (center_x, center_y - 70))
         TextBlock(self.message, 32).draw_center(screen, (center_x, center_y))
-        TextBlock("按 Enter 或 ESC 返回", 32).draw_center(screen, (center_x, center_y + 60))
+        TextBlock("\u6309 Enter \u6216 ESC \u8fd4\u56de", 32).draw_center(
+            screen,
+            (center_x, center_y + 60),
+        )

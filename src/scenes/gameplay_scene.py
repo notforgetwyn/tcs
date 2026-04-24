@@ -66,24 +66,13 @@ class GameplayScene(BaseScene):
             self.app.change_scene("menu")
             return True
 
-        if self.is_game_over:
-            if event.key == pygame.K_r:
-                self.app.start_new_game()
+        if self.is_game_over and event.key == pygame.K_r:
+            self.app.start_new_game()
             return True
 
-        direction_map = {
-            pygame.K_UP: UP,
-            pygame.K_w: UP,
-            pygame.K_DOWN: DOWN,
-            pygame.K_s: DOWN,
-            pygame.K_LEFT: LEFT,
-            pygame.K_a: LEFT,
-            pygame.K_RIGHT: RIGHT,
-            pygame.K_d: RIGHT,
-        }
-        new_direction = direction_map.get(event.key)
-        if new_direction is not None:
-            self.snake.set_direction(new_direction)
+        direction = self._direction_from_event(event)
+        if direction is not None:
+            self.snake.set_direction(direction)
 
         return True
 
@@ -91,6 +80,7 @@ class GameplayScene(BaseScene):
         if self.is_game_over:
             return
 
+        self._poll_direction_input()
         self.elapsed_since_move += delta_ms
         if self.elapsed_since_move < self.move_interval_ms:
             return
@@ -110,6 +100,29 @@ class GameplayScene(BaseScene):
 
         if self.is_game_over:
             self._draw_game_over(screen)
+
+    def _poll_direction_input(self) -> None:
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_UP] or keys[pygame.K_w]:
+            self.snake.set_direction(UP)
+        elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
+            self.snake.set_direction(DOWN)
+        elif keys[pygame.K_LEFT] or keys[pygame.K_a]:
+            self.snake.set_direction(LEFT)
+        elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            self.snake.set_direction(RIGHT)
+
+    def _direction_from_event(self, event: pygame.event.Event) -> tuple[int, int] | None:
+        key_name = getattr(event, "unicode", "").lower()
+        if event.key == pygame.K_UP or key_name == "w":
+            return UP
+        if event.key == pygame.K_DOWN or key_name == "s":
+            return DOWN
+        if event.key == pygame.K_LEFT or key_name == "a":
+            return LEFT
+        if event.key == pygame.K_RIGHT or key_name == "d":
+            return RIGHT
+        return None
 
     def _handle_collisions(self) -> None:
         head_x, head_y = self.snake.get_head()
@@ -148,25 +161,25 @@ class GameplayScene(BaseScene):
         pygame.draw.rect(screen, FOOD_COLOR, rect)
 
     def _draw_hud(self, screen: pygame.Surface) -> None:
-        score_surface = self.font.render(f"分数: {self.score}", True, TEXT_COLOR)
+        score_surface = self.font.render(f"\u5206\u6570: {self.score}", True, TEXT_COLOR)
         screen.blit(score_surface, (16, 12))
 
         if not self.is_game_over:
             hint_surface = self.font.render(
-                "移动: WASD / 方向键  返回菜单: ESC",
+                "\u79fb\u52a8: WASD / \u65b9\u5411\u952e  \u8fd4\u56de\u83dc\u5355: ESC",
                 True,
                 TEXT_COLOR,
             )
             screen.blit(hint_surface, (16, 42))
 
     def _draw_game_over(self, screen: pygame.Surface) -> None:
-        title_surface = self.large_font.render("游戏结束", True, GAME_OVER_COLOR)
+        title_surface = self.large_font.render("\u6e38\u620f\u7ed3\u675f", True, GAME_OVER_COLOR)
         subtitle_surface = self.font.render(
-            "按 R 重新开始，按 ESC 返回菜单",
+            "\u6309 R \u91cd\u65b0\u5f00\u59cb\uff0c\u6309 ESC \u8fd4\u56de\u83dc\u5355",
             True,
             TEXT_COLOR,
         )
-        score_surface = self.font.render(f"最终分数: {self.score}", True, TEXT_COLOR)
+        score_surface = self.font.render(f"\u6700\u7ec8\u5206\u6570: {self.score}", True, TEXT_COLOR)
 
         title_rect = title_surface.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 - 40))
         subtitle_rect = subtitle_surface.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 10))
