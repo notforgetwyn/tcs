@@ -9,9 +9,9 @@ from src.core.file_manager import FileManager
 from src.core.save_service import SaveService
 from src.core.settings_service import SettingsService
 from src.models.game_state import GameState
+from src.scenes.continue_scene import ContinueScene
 from src.scenes.gameplay_scene import GameplayScene
 from src.scenes.menu_scene import MenuScene
-from src.scenes.placeholder_scene import PlaceholderScene
 from src.scenes.settings_scene import SettingsScene
 
 
@@ -31,11 +31,7 @@ class App:
             "menu": MenuScene(self),
             "gameplay": GameplayScene(self),
             "settings": SettingsScene(self),
-            "continue_unavailable": PlaceholderScene(
-                self,
-                title="\u7ee7\u7eed\u6e38\u620f",
-                message="\u5f53\u524d\u6ca1\u6709\u53ef\u7ee7\u7eed\u7684\u5b58\u6863\u3002",
-            ),
+            "continue": ContinueScene(self),
         }
         self.scene = self.scenes["menu"]
 
@@ -65,8 +61,8 @@ class App:
         if scene_name == "gameplay":
             self.scenes["gameplay"] = GameplayScene(self)
         elif scene_name == "continue_game":
-            self._continue_game()
-            return
+            self.scenes["continue"] = ContinueScene(self)
+            scene_name = "continue"
         elif scene_name == "settings":
             self.scenes["settings"] = SettingsScene(self)
         target_scene = self.scenes.get(scene_name)
@@ -84,21 +80,3 @@ class App:
     def load_gameplay_from_state(self, game_state: GameState) -> None:
         self.scenes["gameplay"] = GameplayScene(self, game_state=game_state)
         self.scene = self.scenes["gameplay"]
-
-    def show_continue_unavailable(
-        self,
-        message: str = "\u5f53\u524d\u6ca1\u6709\u53ef\u7ee7\u7eed\u7684\u5b58\u6863\u3002",
-    ) -> None:
-        self.scenes["continue_unavailable"] = PlaceholderScene(
-            self,
-            title="\u7ee7\u7eed\u6e38\u620f",
-            message=message,
-        )
-        self.scene = self.scenes["continue_unavailable"]
-
-    def _continue_game(self) -> None:
-        loaded = self.save_service.load()
-        if loaded is None:
-            self.show_continue_unavailable()
-            return
-        self.load_gameplay_from_state(loaded)

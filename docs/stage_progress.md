@@ -282,3 +282,100 @@
 - 补 `README.md`，写清楚安装依赖、启动命令、操作方式和当前阶段进度。
 - 规范资源目录，为后续字体、图片、音效和主题皮肤做准备。
 - 将 `ContinueScene` 从提示页拆成正式页面，展示是否存在存档、存档分数和继续/返回操作。
+
+## 阶段 7：工程优化第二小步
+
+当前阶段目标：
+- 增加正式 `Button` UI 组件。
+- 将“继续游戏”从通用提示页升级为正式 `ContinueScene`。
+- 补充 `README.md`，让项目具备基础交付说明。
+- 规范资源目录，为后续字体、图片、音效和主题皮肤预留位置。
+
+本阶段完成功能：
+- 新增 `Button` 组件，支持选中态、普通态、禁用态和鼠标点击命中判断。
+- 新增正式 `ContinueScene` 页面。
+- 主菜单点击“继续游戏”后进入 `ContinueScene`，不再直接进入通用占位页。
+- 有存档时，继续游戏页显示存档摘要，并提供“继续游戏”和“返回主菜单”两个按钮。
+- 无存档时，继续游戏页显示无存档提示，并只提供“返回主菜单”按钮。
+- 继续游戏页支持 `W/S`、方向键、`Enter`、空格、`ESC` 和鼠标点击。
+- 新增 `README.md`，记录安装依赖、启动命令、操作方式、数据文件和当前进度。
+- 新增 `assets/fonts`、`assets/images`、`assets/sounds` 资源目录占位。
+
+本阶段页面与 UI 完成情况：
+
+继续游戏页 `ContinueScene`：
+- 页面标题：`继续游戏`。
+- 无存档状态：
+  - 显示 `当前没有可继续的存档。`
+  - 显示 `请返回主菜单开始新游戏。`
+  - 显示一个按钮：`返回主菜单`
+  - 按 `Enter` 或鼠标点击按钮后返回主菜单
+  - 按 `ESC` 直接返回主菜单
+- 有存档状态：
+  - 显示 `已找到可继续的存档`
+  - 显示当前分数
+  - 显示蛇身长度
+  - 显示当前速度毫秒值
+  - 显示两个按钮：`继续游戏`、`返回主菜单`
+  - 选中 `继续游戏` 后按 `Enter` 或点击按钮，恢复 `GameplayScene`
+  - 选中 `返回主菜单` 后按 `Enter` 或点击按钮，返回 `MenuScene`
+
+按钮组件 `Button`：
+- 支持固定矩形区域渲染。
+- 支持普通色、选中色、禁用色。
+- 支持文字居中。
+- 支持 `contains()` 鼠标命中检测。
+- 当前已在 `ContinueScene` 中使用。
+- 后续可逐步替换主菜单和设置页里的纯文本菜单项。
+
+README 文档：
+- 说明项目当前进度。
+- 说明本机已验证 Python 路径。
+- 说明依赖安装命令。
+- 说明启动命令。
+- 说明主菜单、游戏中、设置页、继续游戏页的操作方式。
+- 说明 `config/settings.json` 和 `data/save.json` 的用途。
+
+本阶段完成设计：
+- 将继续游戏从 `App._continue_game()` 的直接跳转逻辑拆到独立 `ContinueScene` 页面。
+- `App.change_scene("continue_game")` 现在负责创建并进入 `ContinueScene`。
+- `ContinueScene` 自己读取 `SaveService.load()`，根据存档是否存在决定页面状态。
+- `Button` 作为独立 UI 组件进入 `ui` 层，后续可以复用于菜单、设置、弹窗等页面。
+- 资源目录拆为 `fonts/images/sounds`，避免后续资源文件直接散落在项目根目录。
+
+本阶段数据流设计：
+- 主菜单继续游戏数据流：`MenuScene` -> `App.change_scene("continue_game")` -> `ContinueScene` -> `SaveService.load()` -> 渲染有存档或无存档状态。
+- 有存档恢复数据流：`ContinueScene` 选中 `继续游戏` -> `App.load_gameplay_from_state(game_state)` -> 创建带存档状态的 `GameplayScene`。
+- 无存档返回数据流：`ContinueScene` 选中 `返回主菜单` 或按 `ESC` -> `App.change_scene("menu")`。
+- 按钮点击数据流：鼠标点击坐标 -> `Button.contains()` -> `ContinueScene._activate_selected()` -> 执行业务动作。
+- 文档交付数据流：用户拉取仓库后可通过 `README.md` 直接安装依赖并启动项目。
+
+本阶段核心业务场景完成进度：
+- 继续游戏业务场景：已从占位提示升级为正式页面。
+- 存档摘要展示：已完成分数、蛇身长度、速度信息展示。
+- 按钮组件化：已完成基础按钮组件，并在继续游戏页落地。
+- 项目交付说明：已完成基础 README。
+- 资源管理：已完成资源目录占位，尚未接入资源加载器。
+
+涉及文件：
+- `src/ui/button.py`
+- `src/scenes/continue_scene.py`
+- `src/app.py`
+- `README.md`
+- `assets/.gitkeep`
+- `assets/fonts/.gitkeep`
+- `assets/images/.gitkeep`
+- `assets/sounds/.gitkeep`
+- `docs/stage_progress.md`
+
+验证情况：
+- 已通过语法检查。
+- 已用无窗口测试验证继续游戏页无存档状态。
+- 已用无窗口测试验证继续游戏页有存档状态。
+- 待提交并推送到 GitHub。
+
+下一阶段建议：
+- 进入 `Sprint 8：UI 组件深化`。
+- 将主菜单和设置页从 `MenuList` 逐步迁移到 `Button`。
+- 增加统一面板组件 `Panel`。
+- 增加资源加载器，为字体、图片和音效接入做准备。
