@@ -10,17 +10,14 @@ from src.constants import (
     GRID_HEIGHT,
     GRID_SIZE,
     GRID_WIDTH,
-    LEFT,
-    RIGHT,
     SNAKE_BODY_COLOR,
     SNAKE_HEAD_COLOR,
     TEXT_COLOR,
-    UP,
-    DOWN,
     WINDOW_HEIGHT,
     WINDOW_WIDTH,
 )
-from src.core.input_keys import is_down, is_left, is_right, is_up
+from src.core import system_keys
+from src.core.input_keys import pressed_direction
 from src.models.food import Food
 from src.models.game_state import GameState
 from src.models.snake import Snake
@@ -38,6 +35,7 @@ class GameplayScene(BaseScene):
         self.elapsed_since_move = 0
         self.is_game_over = False
         self.score = 0
+        self.key_edges = system_keys.KeyEdges()
 
         if game_state is None:
             self.move_interval_ms = self.app.settings_service.load().move_interval_ms
@@ -56,30 +54,32 @@ class GameplayScene(BaseScene):
             self.food = Food(position=game_state.food_position)
 
     def handle_event(self, event: pygame.event.Event) -> bool:
-        if event.type != pygame.KEYDOWN:
-            return True
+        _ = event
+        return True
 
-        if event.key == pygame.K_ESCAPE:
+    def update(self, delta_ms: int) -> None:
+        if self.key_edges.just_pressed("f3", system_keys.VK_F3):
+            self.app.input_debug.enabled = not self.app.input_debug.enabled
+            self.app.input_debug.record_system_key("f3")
+
+        if self.key_edges.just_pressed("escape", system_keys.VK_ESCAPE):
+            self.app.input_debug.record_system_key("escape")
             if self.is_game_over:
                 self.app.save_service.clear()
             else:
                 self._persist_progress()
             self.app.change_scene("menu")
-            return True
+            return
 
-        if self.is_game_over and event.key == pygame.K_r:
-            self.app.start_new_game()
-            return True
+        if self.is_game_over:
+            if self.key_edges.just_pressed("restart", system_keys.VK_R):
+                self.app.input_debug.record_system_key("restart")
+                self.app.start_new_game()
+            return
 
-        direction = self._direction_from_event(event)
+        direction = pressed_direction()
         if direction is not None:
             self.snake.set_direction(direction)
-
-        return True
-
-    def update(self, delta_ms: int) -> None:
-        if self.is_game_over:
-            return
 
         self.elapsed_since_move += delta_ms
         if self.elapsed_since_move < self.move_interval_ms:
@@ -100,17 +100,6 @@ class GameplayScene(BaseScene):
 
         if self.is_game_over:
             self._draw_game_over(screen)
-
-    def _direction_from_event(self, event: pygame.event.Event) -> tuple[int, int] | None:
-        if is_up(event):
-            return UP
-        if is_down(event):
-            return DOWN
-        if is_left(event):
-            return LEFT
-        if is_right(event):
-            return RIGHT
-        return None
 
     def _handle_collisions(self) -> None:
         head_x, head_y = self.snake.get_head()
@@ -159,6 +148,10 @@ class GameplayScene(BaseScene):
                 TEXT_COLOR,
             )
             screen.blit(hint_surface, (16, 42))
+
+        if self.app.input_debug.enabled:
+            debug_surface = self.font.render(self.app.input_debug.last_key_text, True, TEXT_COLOR)
+            screen.blit(debug_surface, (16, WINDOW_HEIGHT - 34))
 
     def _draw_game_over(self, screen: pygame.Surface) -> None:
         title_surface = self.large_font.render("\u6e38\u620f\u7ed3\u675f", True, GAME_OVER_COLOR)

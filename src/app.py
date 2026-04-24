@@ -5,6 +5,7 @@ from pathlib import Path
 import pygame
 
 from src.constants import FPS, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH
+from src.core.input_debug import InputDebug
 from src.core.file_manager import FileManager
 from src.core.save_service import SaveService
 from src.core.settings_service import SettingsService
@@ -27,6 +28,7 @@ class App:
         self.file_manager = FileManager(Path(__file__).resolve().parents[1])
         self.settings_service = SettingsService(self.file_manager)
         self.save_service = SaveService(self.file_manager)
+        self.input_debug = InputDebug()
         self.scenes = {
             "menu": MenuScene(self),
             "gameplay": GameplayScene(self),
@@ -43,6 +45,8 @@ class App:
                 if event.type == pygame.QUIT:
                     self.stop()
                     break
+
+                self.input_debug.record(event)
 
                 if not self.scene.handle_event(event):
                     self.stop()

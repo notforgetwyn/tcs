@@ -3,7 +3,7 @@ from __future__ import annotations
 import pygame
 
 from src.constants import BACKGROUND_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
-from src.core.input_keys import is_down, is_left, is_right, is_up
+from src.core import system_keys
 from src.core.settings_service import (
     MAX_MOVE_INTERVAL_MS,
     MIN_MOVE_INTERVAL_MS,
@@ -28,33 +28,40 @@ class SettingsScene(BaseScene):
             spacing=80,
         )
         self.status_message = "\u5de6\u53f3\u952e\u8c03\u6574\u901f\u5ea6\uff0cEnter \u4fdd\u5b58"
+        self.key_edges = system_keys.KeyEdges()
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self._handle_mouse_click(event.pos)
-            return True
+        return True
 
-        if event.type != pygame.KEYDOWN:
-            return True
-
-        if is_up(event):
+    def update(self, delta_ms: int) -> None:
+        _ = delta_ms
+        if self.key_edges.just_pressed("f3", system_keys.VK_F3):
+            self.app.input_debug.enabled = not self.app.input_debug.enabled
+            self.app.input_debug.record_system_key("f3")
+        elif self.key_edges.just_pressed("up", system_keys.VK_UP, system_keys.VK_W):
             self.menu_list.move_up()
-        elif is_down(event):
+            self.app.input_debug.record_system_key("up")
+        elif self.key_edges.just_pressed("down", system_keys.VK_DOWN, system_keys.VK_S):
             self.menu_list.move_down()
-        elif self.menu_list.selected_index == 0 and is_left(event):
+            self.app.input_debug.record_system_key("down")
+        elif self.menu_list.selected_index == 0 and self.key_edges.just_pressed("left", system_keys.VK_LEFT, system_keys.VK_A):
             self._adjust_speed(MOVE_INTERVAL_STEP_MS)
-        elif self.menu_list.selected_index == 0 and is_right(event):
+            self.app.input_debug.record_system_key("left")
+        elif self.menu_list.selected_index == 0 and self.key_edges.just_pressed("right", system_keys.VK_RIGHT, system_keys.VK_D):
             self._adjust_speed(-MOVE_INTERVAL_STEP_MS)
-        elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+            self.app.input_debug.record_system_key("right")
+        elif self.key_edges.just_pressed("confirm", system_keys.VK_RETURN, system_keys.VK_SPACE):
+            self.app.input_debug.record_system_key("confirm")
             if self.menu_list.selected_index == 0:
                 self.app.settings_service.save(self.settings)
                 self.status_message = "\u8bbe\u7f6e\u5df2\u4fdd\u5b58\u3002"
             else:
                 self.app.change_scene("menu")
-        elif event.key == pygame.K_ESCAPE:
+        elif self.key_edges.just_pressed("escape", system_keys.VK_ESCAPE):
+            self.app.input_debug.record_system_key("escape")
             self.app.change_scene("menu")
-
-        return True
 
     def render(self, screen: pygame.Surface) -> None:
         screen.fill(BACKGROUND_COLOR)
@@ -72,6 +79,8 @@ class SettingsScene(BaseScene):
             (WINDOW_WIDTH // 2, 340),
         )
         TextBlock(self.status_message, 28).draw_center(screen, (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 90))
+        if self.app.input_debug.enabled:
+            TextBlock(self.app.input_debug.last_key_text, 20).draw_topleft(screen, (16, WINDOW_HEIGHT - 32))
 
     def _adjust_speed(self, delta: int) -> None:
         next_value = self.settings.move_interval_ms + delta

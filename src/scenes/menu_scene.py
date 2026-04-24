@@ -3,7 +3,7 @@ from __future__ import annotations
 import pygame
 
 from src.constants import BACKGROUND_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
-from src.core.input_keys import is_down, is_up
+from src.core import system_keys
 from src.scenes.base_scene import BaseScene
 from src.ui.menu_list import MenuList
 from src.ui.text import TextBlock
@@ -21,25 +21,30 @@ class MenuScene(BaseScene):
             ("\u9000\u51fa\u6e38\u620f", "exit"),
         ]
         self.menu_list = MenuList([label for label, _ in self.options])
+        self.key_edges = system_keys.KeyEdges()
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self._handle_mouse_click(event.pos)
-            return True
-
-        if event.type != pygame.KEYDOWN:
-            return True
-
-        if is_up(event):
-            self.menu_list.move_up()
-        elif is_down(event):
-            self.menu_list.move_down()
-        elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
-            self._activate_selected()
-        elif event.key == pygame.K_ESCAPE:
-            return False
-
         return True
+
+    def update(self, delta_ms: int) -> None:
+        _ = delta_ms
+        if self.key_edges.just_pressed("f3", system_keys.VK_F3):
+            self.app.input_debug.enabled = not self.app.input_debug.enabled
+            self.app.input_debug.record_system_key("f3")
+        elif self.key_edges.just_pressed("up", system_keys.VK_UP, system_keys.VK_W):
+            self.menu_list.move_up()
+            self.app.input_debug.record_system_key("up")
+        elif self.key_edges.just_pressed("down", system_keys.VK_DOWN, system_keys.VK_S):
+            self.menu_list.move_down()
+            self.app.input_debug.record_system_key("down")
+        elif self.key_edges.just_pressed("confirm", system_keys.VK_RETURN, system_keys.VK_SPACE):
+            self.app.input_debug.record_system_key("confirm")
+            self._activate_selected()
+        elif self.key_edges.just_pressed("escape", system_keys.VK_ESCAPE):
+            self.app.input_debug.record_system_key("escape")
+            self.app.stop()
 
     def render(self, screen: pygame.Surface) -> None:
         screen.fill(BACKGROUND_COLOR)
@@ -49,6 +54,8 @@ class MenuScene(BaseScene):
             "\u4f7f\u7528 W/S \u6216\u65b9\u5411\u952e\u9009\u62e9\uff0c\u6309 Enter \u786e\u8ba4",
             28,
         ).draw_center(screen, (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 70))
+        if self.app.input_debug.enabled:
+            TextBlock(self.app.input_debug.last_key_text, 20).draw_topleft(screen, (16, WINDOW_HEIGHT - 32))
 
     def _activate_selected(self) -> None:
         _, action = self.options[self.menu_list.selected_index]
