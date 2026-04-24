@@ -80,7 +80,6 @@ class GameplayScene(BaseScene):
         if self.is_game_over:
             return
 
-        self._poll_direction_input()
         self.elapsed_since_move += delta_ms
         if self.elapsed_since_move < self.move_interval_ms:
             return
@@ -100,17 +99,6 @@ class GameplayScene(BaseScene):
 
         if self.is_game_over:
             self._draw_game_over(screen)
-
-    def _poll_direction_input(self) -> None:
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
-            self.snake.set_direction(UP)
-        elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            self.snake.set_direction(DOWN)
-        elif keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.snake.set_direction(LEFT)
-        elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.snake.set_direction(RIGHT)
 
     def _direction_from_event(self, event: pygame.event.Event) -> tuple[int, int] | None:
         key_name = getattr(event, "unicode", "").lower()

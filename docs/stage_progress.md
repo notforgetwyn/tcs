@@ -180,41 +180,102 @@
 ## 阶段 6：工程优化第一小步
 
 当前阶段目标：
-- 抽离场景公共接口和基础 UI 组件，减少场景间重复代码，并修复当前部分场景文件中的中文乱码污染。
+- 抽离场景公共接口和基础 UI 组件，减少场景间重复代码。
+- 修复场景文件中的中文乱码污染。
+- 将输入逻辑统一收敛为 `KEYDOWN` 事件处理，避免轮询和冷却时间导致交互延迟。
 
 本阶段完成功能：
-- 游戏主流程保持可运行
-- 主菜单、设置页、提示页、游戏页改为基于共享组件渲染
-- 修复相关场景中的中文文案乱码
-- 修复菜单和游戏内按键响应慢的问题
-- 游戏移动改为每帧轮询当前按键状态，`W/A/S/D` 和方向键响应更直接
-- 菜单和设置页增加短冷却轮询，避免依赖系统按键重复导致延迟
+- 游戏主流程保持可运行：启动后进入主菜单，主菜单可以进入游戏、设置、继续游戏提示页或退出。
+- 主菜单、设置页、提示页、游戏页改为基于共享 UI 组件渲染。
+- 修复相关场景中的中文文案乱码，源码中的中文显示文案改为 Unicode 转义，降低 Windows 控制台编码污染风险。
+- 修复菜单和游戏内按键响应慢的问题。
+- 菜单、设置页和游戏控制全部改为纯 `KEYDOWN` 处理，不再使用 `pygame.key.get_pressed()` 轮询。
+- `W/A/S/D` 和方向键都在按下瞬间响应。
+
+本阶段页面与 UI 完成情况：
+
+主菜单页 `MenuScene`：
+- 页面标题：`贪吃蛇`，使用 `TextBlock` 渲染。
+- 菜单组件：使用 `MenuList` 渲染四个选项。
+- `开始游戏`：按 `Enter` 或空格后调用 `App.start_new_game()`，清空旧存档并进入新游戏。
+- `继续游戏`：按 `Enter` 或空格后调用 `App.change_scene("continue_game")`，由 `SaveService` 尝试读取存档。
+- `设置`：按 `Enter` 或空格后进入 `SettingsScene`。
+- `退出游戏`：按 `Enter` 或空格后调用 `App.stop()` 退出程序。
+- `W/S` 与方向键：只通过 `KEYDOWN` 事件切换菜单选中项。
+- 当前选中项：由 `MenuList` 用高亮颜色和 `> 选项 <` 形式显示。
+
+设置页 `SettingsScene`：
+- 页面标题：`设置`，使用 `TextBlock` 渲染。
+- 速度设置项：显示当前速度等级和毫秒值，例如 `速度: 正常（140 毫秒）`。
+- `W/S` 与上下方向键：通过 `KEYDOWN` 切换设置项。
+- `A/D` 与左右方向键：当选中速度项时，通过 `KEYDOWN` 调整移动速度。
+- `Enter` 或空格：当选中速度项时保存设置到 `config/settings.json`。
+- `返回主菜单`：选中后按 `Enter` 或空格返回主菜单。
+- `ESC`：直接返回主菜单。
+- 状态提示：保存后显示 `设置已保存。`，调整后显示 `按 Enter 保存设置。`
+
+提示页 `PlaceholderScene`：
+- 当前用于“无可继续存档”的提示场景。
+- 页面标题和提示内容使用 `TextBlock` 渲染。
+- `Enter`、小键盘 `Enter` 或 `ESC`：返回主菜单。
+- 该页后续可以继续扩展成正式的 `ContinueScene` 或通用消息弹窗。
+
+游戏页 `GameplayScene`：
+- HUD：显示当前分数和操作提示。
+- 蛇与食物：继续使用网格绘制，蛇头、蛇身、食物颜色保持原设计。
+- `W/A/S/D` 与方向键：通过 `KEYDOWN` 立即设置蛇的方向。
+- 反向移动保护：仍由 `Snake.set_direction()` 控制，避免蛇直接反向撞到自己。
+- `ESC`：游戏中保存当前进度并返回主菜单；游戏结束状态下清除无效存档再返回主菜单。
+- `R`：游戏结束后重新开始新游戏。
+- 游戏结束 UI：显示 `游戏结束`、最终分数和返回/重开提示。
 
 本阶段完成设计：
-- 新增 `BaseScene`，统一所有场景的接口形式
-- 新增 `TextBlock`，统一文本渲染入口
-- 新增 `MenuList`，统一菜单项高亮和上下移动逻辑
-- `MenuScene`、`SettingsScene`、`PlaceholderScene`、`GameplayScene` 改为复用公共组件
-- 场景层和 UI 辅助层的边界比之前更清晰，后续继续加按钮组件和面板组件会更顺手
-- 输入处理从单纯依赖 `KEYDOWN` 调整为“事件处理 + 每帧轮询”结合，减少窗口焦点和按键重复设置带来的不稳定
+- 新增 `BaseScene`，统一所有场景的接口形式：`handle_event()`、`update()`、`render()`。
+- 新增 `TextBlock`，统一文本渲染入口，避免每个页面重复创建字体和计算居中位置。
+- 新增 `MenuList`，统一菜单项渲染、高亮显示和上下移动逻辑。
+- `MenuScene`、`SettingsScene`、`PlaceholderScene`、`GameplayScene` 改为复用公共组件。
+- 场景层和 UI 辅助层边界更清晰：场景负责业务交互，UI 组件负责渲染细节。
+- 输入处理统一使用 `KEYDOWN`，菜单切换、设置调整、游戏转向都在事件层完成。
+
+本阶段数据流设计：
+- 主菜单开始游戏数据流：`MenuScene` 接收 `KEYDOWN` -> 触发 `App.start_new_game()` -> `SaveService.clear()` 清空旧存档 -> 创建新的 `GameplayScene`。
+- 主菜单继续游戏数据流：`MenuScene` 接收 `KEYDOWN` -> 触发 `App.change_scene("continue_game")` -> `SaveService.load()` 读取 `data/save.json` -> 有存档则恢复 `GameplayScene`，无存档则进入提示页。
+- 设置保存数据流：`SettingsScene` 接收速度调整按键 -> 更新内存中的 `Settings` -> `Enter` 触发 `SettingsService.save()` -> 写入 `config/settings.json`。
+- 游戏输入数据流：`GameplayScene.handle_event()` 接收方向键或 `W/A/S/D` -> `_direction_from_event()` 转换为方向向量 -> `Snake.set_direction()` 更新方向。
+- 游戏存档数据流：游戏状态变化后由 `GameplayScene._persist_progress()` 生成 `GameState` -> `SaveService.save()` 写入 `data/save.json`。
+- 游戏结束数据流：碰撞检测失败 -> `_handle_game_over()` -> `SaveService.clear()` 清除不可继续的存档。
+
+本阶段核心业务场景完成进度：
+- 主菜单业务场景：已完成开始游戏、继续游戏、设置、退出四个入口。
+- 设置业务场景：已完成速度调整、速度保存、返回主菜单。
+- 游戏业务场景：已完成方向输入、移动、吃食物、计分、死亡判定、结束后重开。
+- 存档业务场景：本阶段未新增存档规则，只保持阶段 5 的存档/读档能力，并让主菜单继续游戏入口继续可用。
+- UI 组件化业务场景：已完成文本组件和菜单组件抽离，按钮组件仍未实现。
 
 涉及文件：
 - `src/scenes/base_scene.py`
 - `src/ui/text.py`
 - `src/ui/menu_list.py`
 - `src/app.py`
+- `src/constants.py`
 - `src/scenes/menu_scene.py`
 - `src/scenes/placeholder_scene.py`
 - `src/scenes/settings_scene.py`
 - `src/scenes/gameplay_scene.py`
+- `docs/stage_progress.md`
 
 验证情况：
-- 已通过语法检查
-- 已能启动进入窗口主循环
-- 已提交并推送到 GitHub
+- 已通过语法检查：`D:\ananconda\python.exe -m compileall main.py src`
+- 已确认源码中无 `get_pressed`、`NAV_COOLDOWN`、`nav_cooldown` 残留。
+- 已用无窗口测试验证主菜单 `W/S` 输入。
+- 已用无窗口测试验证设置页 `W/S` 输入。
+- 已用无窗口测试验证游戏页 `W` 转向。
+- 已能启动进入窗口主循环。
+- 已提交并推送到 GitHub。
 
 下一阶段建议：
-- 继续工程优化第二小步
-- 增加真正的按钮组件
-- 补 `README.md` 启动说明
-- 规范资源目录与后续 UI 组件结构
+- 继续工程优化第二小步。
+- 增加真正的按钮组件 `Button`，把菜单项从纯文本菜单升级为可复用 UI 控件。
+- 补 `README.md`，写清楚安装依赖、启动命令、操作方式和当前阶段进度。
+- 规范资源目录，为后续字体、图片、音效和主题皮肤做准备。
+- 将 `ContinueScene` 从提示页拆成正式页面，展示是否存在存档、存档分数和继续/返回操作。

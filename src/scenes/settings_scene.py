@@ -14,9 +14,6 @@ from src.ui.menu_list import MenuList
 from src.ui.text import TextBlock
 
 
-NAV_COOLDOWN_MS = 110
-
-
 class SettingsScene(BaseScene):
     """Allows the player to update movement speed and save it."""
 
@@ -30,7 +27,6 @@ class SettingsScene(BaseScene):
             spacing=80,
         )
         self.status_message = "\u5de6\u53f3\u952e\u8c03\u6574\u901f\u5ea6\uff0cEnter \u4fdd\u5b58"
-        self.nav_cooldown_ms = 0
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type != pygame.KEYDOWN:
@@ -38,16 +34,12 @@ class SettingsScene(BaseScene):
 
         if self._is_up_input(event):
             self.menu_list.move_up()
-            self.nav_cooldown_ms = NAV_COOLDOWN_MS
         elif self._is_down_input(event):
             self.menu_list.move_down()
-            self.nav_cooldown_ms = NAV_COOLDOWN_MS
         elif self.menu_list.selected_index == 0 and self._is_left_input(event):
             self._adjust_speed(MOVE_INTERVAL_STEP_MS)
-            self.nav_cooldown_ms = NAV_COOLDOWN_MS
         elif self.menu_list.selected_index == 0 and self._is_right_input(event):
             self._adjust_speed(-MOVE_INTERVAL_STEP_MS)
-            self.nav_cooldown_ms = NAV_COOLDOWN_MS
         elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
             if self.menu_list.selected_index == 0:
                 self.app.settings_service.save(self.settings)
@@ -58,25 +50,6 @@ class SettingsScene(BaseScene):
             self.app.change_scene("menu")
 
         return True
-
-    def update(self, delta_ms: int) -> None:
-        self.nav_cooldown_ms = max(0, self.nav_cooldown_ms - delta_ms)
-        if self.nav_cooldown_ms > 0:
-            return
-
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
-            self.menu_list.move_up()
-            self.nav_cooldown_ms = NAV_COOLDOWN_MS
-        elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            self.menu_list.move_down()
-            self.nav_cooldown_ms = NAV_COOLDOWN_MS
-        elif self.menu_list.selected_index == 0 and (keys[pygame.K_LEFT] or keys[pygame.K_a]):
-            self._adjust_speed(MOVE_INTERVAL_STEP_MS)
-            self.nav_cooldown_ms = NAV_COOLDOWN_MS
-        elif self.menu_list.selected_index == 0 and (keys[pygame.K_RIGHT] or keys[pygame.K_d]):
-            self._adjust_speed(-MOVE_INTERVAL_STEP_MS)
-            self.nav_cooldown_ms = NAV_COOLDOWN_MS
 
     def render(self, screen: pygame.Surface) -> None:
         screen.fill(BACKGROUND_COLOR)
