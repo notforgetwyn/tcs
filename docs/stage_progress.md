@@ -191,6 +191,7 @@
 - 修复菜单和游戏内按键响应慢的问题。
 - 菜单、设置页和游戏控制全部改为纯 `KEYDOWN` 处理，不再使用 `pygame.key.get_pressed()` 轮询。
 - `W/A/S/D` 和方向键都在按下瞬间响应。
+- `W/A/S/D` 识别优先使用 `pygame.K_w/K_a/K_s/K_d` 物理按键码，避免中文输入法或 `event.unicode` 为空时字母键失效。
 
 本阶段页面与 UI 完成情况：
 
@@ -236,6 +237,7 @@
 - `MenuScene`、`SettingsScene`、`PlaceholderScene`、`GameplayScene` 改为复用公共组件。
 - 场景层和 UI 辅助层边界更清晰：场景负责业务交互，UI 组件负责渲染细节。
 - 输入处理统一使用 `KEYDOWN`，菜单切换、设置调整、游戏转向都在事件层完成。
+- 字母键输入检测采用“物理按键码优先，`event.unicode` 兜底”的设计，兼容输入法状态差异。
 
 本阶段数据流设计：
 - 主菜单开始游戏数据流：`MenuScene` 接收 `KEYDOWN` -> 触发 `App.start_new_game()` -> `SaveService.clear()` 清空旧存档 -> 创建新的 `GameplayScene`。
@@ -270,6 +272,7 @@
 - 已用无窗口测试验证主菜单 `W/S` 输入。
 - 已用无窗口测试验证设置页 `W/S` 输入。
 - 已用无窗口测试验证游戏页 `W` 转向。
+- 已用无窗口测试验证 `event.unicode` 为空时，主菜单、设置页和游戏页仍能识别 `W/S/A/D`。
 - 已能启动进入窗口主循环。
 - 已提交并推送到 GitHub。
 

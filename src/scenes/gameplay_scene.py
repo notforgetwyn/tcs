@@ -102,13 +102,13 @@ class GameplayScene(BaseScene):
 
     def _direction_from_event(self, event: pygame.event.Event) -> tuple[int, int] | None:
         key_name = getattr(event, "unicode", "").lower()
-        if event.key == pygame.K_UP or key_name == "w":
+        if event.key in (pygame.K_UP, pygame.K_w) or key_name == "w":
             return UP
-        if event.key == pygame.K_DOWN or key_name == "s":
+        if event.key in (pygame.K_DOWN, pygame.K_s) or key_name == "s":
             return DOWN
-        if event.key == pygame.K_LEFT or key_name == "a":
+        if event.key in (pygame.K_LEFT, pygame.K_a) or key_name == "a":
             return LEFT
-        if event.key == pygame.K_RIGHT or key_name == "d":
+        if event.key in (pygame.K_RIGHT, pygame.K_d) or key_name == "d":
             return RIGHT
         return None
 

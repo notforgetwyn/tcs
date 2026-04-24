@@ -56,7 +56,7 @@ class MenuScene(BaseScene):
         self.app.change_scene(action)
 
     def _is_up_input(self, event: pygame.event.Event) -> bool:
-        return event.key == pygame.K_UP or getattr(event, "unicode", "").lower() == "w"
+        return event.key in (pygame.K_UP, pygame.K_w) or getattr(event, "unicode", "").lower() == "w"
 
     def _is_down_input(self, event: pygame.event.Event) -> bool:
-        return event.key == pygame.K_DOWN or getattr(event, "unicode", "").lower() == "s"
+        return event.key in (pygame.K_DOWN, pygame.K_s) or getattr(event, "unicode", "").lower() == "s"

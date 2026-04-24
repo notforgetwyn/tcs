@@ -92,13 +92,13 @@ class SettingsScene(BaseScene):
         return "\u5f88\u6162"
 
     def _is_up_input(self, event: pygame.event.Event) -> bool:
-        return event.key == pygame.K_UP or getattr(event, "unicode", "").lower() == "w"
+        return event.key in (pygame.K_UP, pygame.K_w) or getattr(event, "unicode", "").lower() == "w"
 
     def _is_down_input(self, event: pygame.event.Event) -> bool:
-        return event.key == pygame.K_DOWN or getattr(event, "unicode", "").lower() == "s"
+        return event.key in (pygame.K_DOWN, pygame.K_s) or getattr(event, "unicode", "").lower() == "s"
 
     def _is_left_input(self, event: pygame.event.Event) -> bool:
-        return event.key == pygame.K_LEFT or getattr(event, "unicode", "").lower() == "a"
+        return event.key in (pygame.K_LEFT, pygame.K_a) or getattr(event, "unicode", "").lower() == "a"
 
     def _is_right_input(self, event: pygame.event.Event) -> bool:
-        return event.key == pygame.K_RIGHT or getattr(event, "unicode", "").lower() == "d"
+        return event.key in (pygame.K_RIGHT, pygame.K_d) or getattr(event, "unicode", "").lower() == "d"
