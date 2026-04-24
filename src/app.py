@@ -31,7 +31,6 @@ class App:
         self.input_debug = InputDebug()
         self.scenes = {
             "menu": MenuScene(self),
-            "gameplay": GameplayScene(self),
             "settings": SettingsScene(self),
             "continue": ContinueScene(self),
         }
