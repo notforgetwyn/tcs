@@ -24,6 +24,8 @@ class ContinueScene(BaseScene):
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self._handle_mouse_click(event.pos)
+        elif event.type == pygame.MOUSEWHEEL:
+            self._scroll(-event.y)
         elif event.type == pygame.MOUSEMOTION:
             self._handle_mouse_motion(event.pos)
         return True
@@ -71,6 +73,7 @@ class ContinueScene(BaseScene):
                 screen,
                 (center_x, 145),
             )
+            self._draw_scroll_status(screen)
             for visible_index, slot in enumerate(self._visible_slots()):
                 actual_index = self.scroll_offset + visible_index
                 button = self._build_save_button(slot, actual_index, visible_index)
@@ -89,6 +92,13 @@ class ContinueScene(BaseScene):
 
         if self.app.input_debug.enabled:
             TextBlock(self.app.input_debug.last_key_text, 20).draw_topleft(screen, (16, WINDOW_HEIGHT - 32))
+
+    def _draw_scroll_status(self, screen: pygame.Surface) -> None:
+        total = len(self.save_slots)
+        start = self.scroll_offset + 1
+        end = min(self.scroll_offset + self.MAX_VISIBLE_SAVES, total)
+        text = f"\u663e\u793a {start}-{end} / {total}  \u6eda\u8f6e\u6216 W/S \u6d4f\u89c8\u66f4\u591a\u5b58\u6863"
+        TextBlock(text, 22, TEXT_COLOR).draw_center(screen, (WINDOW_WIDTH // 2, 170))
 
     def _visible_slots(self) -> list[SaveSlot]:
         return self.save_slots[self.scroll_offset : self.scroll_offset + self.MAX_VISIBLE_SAVES]
@@ -118,6 +128,7 @@ class ContinueScene(BaseScene):
     def _move_selection(self, step: int) -> None:
         self.selected_index = (self.selected_index + step) % (len(self.save_slots) + 1)
         self._sync_scroll_to_selection()
+        self.hovered_index = None
 
     def _activate_selected(self) -> None:
         if self.selected_index < len(self.save_slots):
@@ -137,6 +148,20 @@ class ContinueScene(BaseScene):
         self.hovered_index = self._hit_test(position)
         if self.hovered_index is not None:
             self.selected_index = self.hovered_index
+            self._sync_scroll_to_selection()
+
+    def _scroll(self, step: int) -> None:
+        if len(self.save_slots) <= self.MAX_VISIBLE_SAVES:
+            return
+
+        max_offset = len(self.save_slots) - self.MAX_VISIBLE_SAVES
+        self.scroll_offset = max(0, min(max_offset, self.scroll_offset + step))
+
+        if self.selected_index < self.scroll_offset:
+            self.selected_index = self.scroll_offset
+        elif self.selected_index >= self.scroll_offset + self.MAX_VISIBLE_SAVES:
+            self.selected_index = self.scroll_offset + self.MAX_VISIBLE_SAVES - 1
+        self.hovered_index = None
 
     def _hit_test(self, position: tuple[int, int]) -> int | None:
         for visible_index, slot in enumerate(self._visible_slots()):
