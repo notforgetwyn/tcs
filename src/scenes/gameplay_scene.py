@@ -36,6 +36,8 @@ class GameplayScene(BaseScene):
         self.is_game_over = False
         self.score = 0
         self.key_edges = system_keys.KeyEdges()
+        self.is_paused = False
+        self.status_message = ""
 
         if game_state is None:
             self.move_interval_ms = self.app.settings_service.load().move_interval_ms
@@ -61,6 +63,8 @@ class GameplayScene(BaseScene):
         self.key_edges.sync("f3", system_keys.VK_F3)
         self.key_edges.sync("escape", system_keys.VK_ESCAPE)
         self.key_edges.sync("restart", system_keys.VK_R)
+        self.key_edges.sync("save", system_keys.VK_E)
+        self.key_edges.sync("pause", system_keys.VK_P)
 
     def update(self, delta_ms: int) -> None:
         if self.key_edges.just_pressed("f3", system_keys.VK_F3):
@@ -80,6 +84,21 @@ class GameplayScene(BaseScene):
             if self.key_edges.just_pressed("restart", system_keys.VK_R):
                 self.app.input_debug.record_system_key("restart")
                 self.app.start_new_game()
+            return
+
+        if self.key_edges.just_pressed("pause", system_keys.VK_P):
+            self.is_paused = not self.is_paused
+            self.status_message = "\u5df2\u6682\u505c\uff0c\u6309 P \u7ee7\u7eed" if self.is_paused else "\u5df2\u7ee7\u7eed\u6e38\u620f"
+            self.app.input_debug.record_system_key("pause")
+            return
+
+        if self.key_edges.just_pressed("save", system_keys.VK_E):
+            self._persist_progress()
+            self.status_message = "\u5df2\u4fdd\u5b58\u5b58\u6863"
+            self.app.input_debug.record_system_key("save")
+            return
+
+        if self.is_paused:
             return
 
         direction = pressed_direction()
@@ -148,11 +167,18 @@ class GameplayScene(BaseScene):
 
         if not self.is_game_over:
             hint_surface = self.font.render(
-                "\u79fb\u52a8: WASD / \u65b9\u5411\u952e  \u8fd4\u56de\u83dc\u5355: ESC",
+                "\u79fb\u52a8: WASD / \u65b9\u5411\u952e  \u4fdd\u5b58: E  \u6682\u505c: P  \u8fd4\u56de\u83dc\u5355: ESC",
                 True,
                 TEXT_COLOR,
             )
             screen.blit(hint_surface, (16, 42))
+
+        if self.status_message:
+            status_surface = self.font.render(self.status_message, True, TEXT_COLOR)
+            screen.blit(status_surface, (16, 72))
+
+        if self.is_paused and not self.is_game_over:
+            self._draw_pause_overlay(screen)
 
         if self.app.input_debug.enabled:
             debug_surface = self.font.render(self.app.input_debug.last_key_text, True, TEXT_COLOR)
@@ -174,6 +200,18 @@ class GameplayScene(BaseScene):
         screen.blit(title_surface, title_rect)
         screen.blit(subtitle_surface, subtitle_rect)
         screen.blit(score_surface, score_rect)
+
+    def _draw_pause_overlay(self, screen: pygame.Surface) -> None:
+        overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 150))
+        screen.blit(overlay, (0, 0))
+
+        title_surface = self.large_font.render("\u6e38\u620f\u6682\u505c", True, TEXT_COLOR)
+        subtitle_surface = self.font.render("\u6309 P \u7ee7\u7eed\uff0c\u6309 E \u4fdd\u5b58\uff0c\u6309 ESC \u8fd4\u56de\u83dc\u5355", True, TEXT_COLOR)
+        title_rect = title_surface.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 - 30))
+        subtitle_rect = subtitle_surface.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 25))
+        screen.blit(title_surface, title_rect)
+        screen.blit(subtitle_surface, subtitle_rect)
 
     def _persist_progress(self) -> None:
         self.app.save_service.save(
