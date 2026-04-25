@@ -16,8 +16,6 @@ from src.constants import (
     WINDOW_HEIGHT,
     WINDOW_WIDTH,
 )
-from src.core import system_keys
-from src.core.input_keys import pressed_direction
 from src.models.food import Food
 from src.models.game_state import GameState
 from src.models.snake import Snake
@@ -35,7 +33,6 @@ class GameplayScene(BaseScene):
         self.elapsed_since_move = 0
         self.is_game_over = False
         self.score = 0
-        self.key_edges = system_keys.KeyEdges()
         self.is_paused = False
         self.status_message = ""
         self.save_id = save_id
@@ -61,18 +58,16 @@ class GameplayScene(BaseScene):
         return True
 
     def on_enter(self) -> None:
-        self.key_edges.sync("f3", system_keys.VK_F3)
-        self.key_edges.sync("escape", system_keys.VK_ESCAPE)
-        self.key_edges.sync("restart", system_keys.VK_R)
-        self.key_edges.sync("save", system_keys.VK_E)
-        self.key_edges.sync("pause", system_keys.VK_P)
+        self.app.input_service.sync_many(
+            ["debug_toggle", "back", "restart_game", "save_game", "pause_game"]
+        )
 
     def update(self, delta_ms: int) -> None:
-        if self.key_edges.just_pressed("f3", system_keys.VK_F3):
+        if self.app.input_service.just_pressed("debug_toggle"):
             self.app.input_debug.enabled = not self.app.input_debug.enabled
             self.app.input_debug.record_system_key("f3")
 
-        if self.key_edges.just_pressed("escape", system_keys.VK_ESCAPE):
+        if self.app.input_service.just_pressed("back"):
             self.app.input_debug.record_system_key("escape")
             if self.is_game_over:
                 self._delete_current_save()
@@ -82,18 +77,18 @@ class GameplayScene(BaseScene):
             return
 
         if self.is_game_over:
-            if self.key_edges.just_pressed("restart", system_keys.VK_R):
+            if self.app.input_service.just_pressed("restart_game"):
                 self.app.input_debug.record_system_key("restart")
                 self.app.start_new_game()
             return
 
-        if self.key_edges.just_pressed("pause", system_keys.VK_P):
+        if self.app.input_service.just_pressed("pause_game"):
             self.is_paused = not self.is_paused
             self.status_message = "\u5df2\u6682\u505c\uff0c\u6309 P \u7ee7\u7eed" if self.is_paused else "\u5df2\u7ee7\u7eed\u6e38\u620f"
             self.app.input_debug.record_system_key("pause")
             return
 
-        if self.key_edges.just_pressed("save", system_keys.VK_E):
+        if self.app.input_service.just_pressed("save_game"):
             self._persist_progress()
             self.app.input_debug.record_system_key("save")
             self.app.change_scene("menu")
@@ -102,7 +97,7 @@ class GameplayScene(BaseScene):
         if self.is_paused:
             return
 
-        direction = pressed_direction()
+        direction = self.app.input_service.direction()
         if direction is not None:
             self.snake.set_direction(direction)
 

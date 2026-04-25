@@ -6,6 +6,7 @@ import pygame
 
 from src.constants import FPS, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH
 from src.core.input_debug import InputDebug
+from src.core.input_service import InputService
 from src.core.file_manager import FileManager
 from src.core.save_service import SaveService
 from src.core.settings_service import SettingsService
@@ -29,6 +30,7 @@ class App:
         self.settings_service = SettingsService(self.file_manager)
         self.save_service = SaveService(self.file_manager)
         self.input_debug = InputDebug()
+        self.input_service = InputService(self.file_manager)
         self.scenes = {
             "menu": MenuScene(self),
             "settings": SettingsScene(self),

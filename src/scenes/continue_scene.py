@@ -3,7 +3,6 @@ from __future__ import annotations
 import pygame
 
 from src.constants import BACKGROUND_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
-from src.core import system_keys
 from src.core.save_service import SaveSlot
 from src.scenes.base_scene import BaseScene
 from src.ui.button import Button
@@ -21,7 +20,6 @@ class ContinueScene(BaseScene):
         self.selected_index = 0
         self.hovered_index: int | None = None
         self.scroll_offset = 0
-        self.key_edges = system_keys.KeyEdges()
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -34,27 +32,23 @@ class ContinueScene(BaseScene):
         self.save_slots = self.app.save_service.list_saves()
         self.selected_index = min(self.selected_index, self._last_index())
         self._sync_scroll_to_selection()
-        self.key_edges.sync("f3", system_keys.VK_F3)
-        self.key_edges.sync("up", system_keys.VK_UP, system_keys.VK_W)
-        self.key_edges.sync("down", system_keys.VK_DOWN, system_keys.VK_S)
-        self.key_edges.sync("confirm", system_keys.VK_RETURN, system_keys.VK_SPACE)
-        self.key_edges.sync("escape", system_keys.VK_ESCAPE)
+        self.app.input_service.sync_many(["debug_toggle", "menu_up", "menu_down", "confirm", "back"])
 
     def update(self, delta_ms: int) -> None:
         _ = delta_ms
-        if self.key_edges.just_pressed("f3", system_keys.VK_F3):
+        if self.app.input_service.just_pressed("debug_toggle"):
             self.app.input_debug.enabled = not self.app.input_debug.enabled
             self.app.input_debug.record_system_key("f3")
-        elif self.key_edges.just_pressed("up", system_keys.VK_UP, system_keys.VK_W):
+        elif self.app.input_service.just_pressed("menu_up"):
             self._move_selection(-1)
             self.app.input_debug.record_system_key("up")
-        elif self.key_edges.just_pressed("down", system_keys.VK_DOWN, system_keys.VK_S):
+        elif self.app.input_service.just_pressed("menu_down"):
             self._move_selection(1)
             self.app.input_debug.record_system_key("down")
-        elif self.key_edges.just_pressed("confirm", system_keys.VK_RETURN, system_keys.VK_SPACE):
+        elif self.app.input_service.just_pressed("confirm"):
             self.app.input_debug.record_system_key("confirm")
             self._activate_selected()
-        elif self.key_edges.just_pressed("escape", system_keys.VK_ESCAPE):
+        elif self.app.input_service.just_pressed("back"):
             self.app.input_debug.record_system_key("escape")
             self.app.change_scene("menu")
 

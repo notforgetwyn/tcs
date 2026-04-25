@@ -1,0 +1,53 @@
+{
+  "debug_toggle": [
+    "F3"
+  ],
+  "confirm": [
+    "RETURN",
+    "SPACE"
+  ],
+  "back": [
+    "ESCAPE"
+  ],
+  "menu_up": [
+    "UP",
+    "W"
+  ],
+  "menu_down": [
+    "DOWN",
+    "S"
+  ],
+  "settings_left": [
+    "LEFT",
+    "A"
+  ],
+  "settings_right": [
+    "RIGHT",
+    "D"
+  ],
+  "move_up": [
+    "UP",
+    "W"
+  ],
+  "move_down": [
+    "DOWN",
+    "S"
+  ],
+  "move_left": [
+    "LEFT",
+    "A"
+  ],
+  "move_right": [
+    "RIGHT",
+    "D"
+  ],
+  "save_game": [
+    "E"
+  ],
+  "pause_game": [
+    "P"
+  ],
+  "restart_game": [
+    "R"
+  ]
+}

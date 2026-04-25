@@ -3,7 +3,6 @@ from __future__ import annotations
 import pygame
 
 from src.constants import BACKGROUND_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
-from src.core import system_keys
 from src.core.settings_service import (
     MAX_MOVE_INTERVAL_MS,
     MIN_MOVE_INTERVAL_MS,
@@ -28,7 +27,6 @@ class SettingsScene(BaseScene):
             spacing=80,
         )
         self.status_message = "\u5de6\u53f3\u952e\u8c03\u6574\u901f\u5ea6\uff0cEnter \u4fdd\u5b58"
-        self.key_edges = system_keys.KeyEdges()
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -36,39 +34,35 @@ class SettingsScene(BaseScene):
         return True
 
     def on_enter(self) -> None:
-        self.key_edges.sync("f3", system_keys.VK_F3)
-        self.key_edges.sync("up", system_keys.VK_UP, system_keys.VK_W)
-        self.key_edges.sync("down", system_keys.VK_DOWN, system_keys.VK_S)
-        self.key_edges.sync("left", system_keys.VK_LEFT, system_keys.VK_A)
-        self.key_edges.sync("right", system_keys.VK_RIGHT, system_keys.VK_D)
-        self.key_edges.sync("confirm", system_keys.VK_RETURN, system_keys.VK_SPACE)
-        self.key_edges.sync("escape", system_keys.VK_ESCAPE)
+        self.app.input_service.sync_many(
+            ["debug_toggle", "menu_up", "menu_down", "settings_left", "settings_right", "confirm", "back"]
+        )
 
     def update(self, delta_ms: int) -> None:
         _ = delta_ms
-        if self.key_edges.just_pressed("f3", system_keys.VK_F3):
+        if self.app.input_service.just_pressed("debug_toggle"):
             self.app.input_debug.enabled = not self.app.input_debug.enabled
             self.app.input_debug.record_system_key("f3")
-        elif self.key_edges.just_pressed("up", system_keys.VK_UP, system_keys.VK_W):
+        elif self.app.input_service.just_pressed("menu_up"):
             self.menu_list.move_up()
             self.app.input_debug.record_system_key("up")
-        elif self.key_edges.just_pressed("down", system_keys.VK_DOWN, system_keys.VK_S):
+        elif self.app.input_service.just_pressed("menu_down"):
             self.menu_list.move_down()
             self.app.input_debug.record_system_key("down")
-        elif self.menu_list.selected_index == 0 and self.key_edges.just_pressed("left", system_keys.VK_LEFT, system_keys.VK_A):
+        elif self.menu_list.selected_index == 0 and self.app.input_service.just_pressed("settings_left"):
             self._adjust_speed(MOVE_INTERVAL_STEP_MS)
             self.app.input_debug.record_system_key("left")
-        elif self.menu_list.selected_index == 0 and self.key_edges.just_pressed("right", system_keys.VK_RIGHT, system_keys.VK_D):
+        elif self.menu_list.selected_index == 0 and self.app.input_service.just_pressed("settings_right"):
             self._adjust_speed(-MOVE_INTERVAL_STEP_MS)
             self.app.input_debug.record_system_key("right")
-        elif self.key_edges.just_pressed("confirm", system_keys.VK_RETURN, system_keys.VK_SPACE):
+        elif self.app.input_service.just_pressed("confirm"):
             self.app.input_debug.record_system_key("confirm")
             if self.menu_list.selected_index == 0:
                 self.app.settings_service.save(self.settings)
                 self.status_message = "\u8bbe\u7f6e\u5df2\u4fdd\u5b58\u3002"
             else:
                 self.app.change_scene("menu")
-        elif self.key_edges.just_pressed("escape", system_keys.VK_ESCAPE):
+        elif self.app.input_service.just_pressed("back"):
             self.app.input_debug.record_system_key("escape")
             self.app.change_scene("menu")
 

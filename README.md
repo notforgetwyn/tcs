@@ -91,6 +91,7 @@ Windows 物理键盘
 ## 数据文件
 
 - `config/settings.json`：保存移动速度设置。
+- `config/key_bindings.json`：保存动作到键位的映射。
 - `data/save.json`：保存当前游戏进度。
 
 ## 项目文档
