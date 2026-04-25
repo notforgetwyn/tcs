@@ -76,6 +76,9 @@ class InputService:
             return RIGHT
         return None
 
+    def binding_text(self, action: str) -> str:
+        return " / ".join(self.bindings.get(action, []))
+
     def _load_bindings(self) -> dict[str, list[str]]:
         raw_data = self.file_manager.load_json("config/key_bindings.json", deepcopy(DEFAULT_KEY_BINDINGS))
         normalized: dict[str, list[str]] = {}

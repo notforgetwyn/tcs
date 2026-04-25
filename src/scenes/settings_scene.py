@@ -22,7 +22,7 @@ class SettingsScene(BaseScene):
         loaded = self.app.settings_service.load()
         self.settings = Settings(move_interval_ms=loaded.move_interval_ms)
         self.menu_list = MenuList(
-            ["\u901f\u5ea6", "\u8fd4\u56de\u4e3b\u83dc\u5355"],
+            ["\u901f\u5ea6", "\u952e\u4f4d\u8bf4\u660e", "\u8fd4\u56de\u4e3b\u83dc\u5355"],
             font_size=36,
             spacing=80,
         )
@@ -60,6 +60,8 @@ class SettingsScene(BaseScene):
             if self.menu_list.selected_index == 0:
                 self.app.settings_service.save(self.settings)
                 self.status_message = "\u8bbe\u7f6e\u5df2\u4fdd\u5b58\u3002"
+            elif self.menu_list.selected_index == 1:
+                self.status_message = "\u5f53\u524d\u9636\u6bb5\u53ea\u5c55\u793a\u952e\u4f4d\uff0c\u4fee\u6539\u952e\u4f4d\u5c06\u5728\u540e\u7eed\u9636\u6bb5\u52a0\u5165\u3002"
             else:
                 self.app.change_scene("menu")
         elif self.app.input_service.just_pressed("back"):
@@ -73,13 +75,20 @@ class SettingsScene(BaseScene):
         speed_color = (52, 152, 219) if self.menu_list.selected_index == 0 else TEXT_COLOR
         TextBlock(self._build_speed_text(), 36, speed_color).draw_center(
             screen,
-            (WINDOW_WIDTH // 2, 260),
+            (WINDOW_WIDTH // 2, 205),
         )
 
-        back_color = (52, 152, 219) if self.menu_list.selected_index == 1 else TEXT_COLOR
+        key_title_color = (52, 152, 219) if self.menu_list.selected_index == 1 else TEXT_COLOR
+        TextBlock("\u952e\u4f4d\u8bf4\u660e", 32, key_title_color).draw_center(
+            screen,
+            (WINDOW_WIDTH // 2, 265),
+        )
+        self._draw_key_bindings(screen, 300)
+
+        back_color = (52, 152, 219) if self.menu_list.selected_index == 2 else TEXT_COLOR
         TextBlock("\u8fd4\u56de\u4e3b\u83dc\u5355", 36, back_color).draw_center(
             screen,
-            (WINDOW_WIDTH // 2, 340),
+            (WINDOW_WIDTH // 2, 485),
         )
         TextBlock(self.status_message, 28).draw_center(screen, (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 90))
         if self.app.input_debug.enabled:
@@ -108,10 +117,39 @@ class SettingsScene(BaseScene):
             return "\u6162"
         return "\u5f88\u6162"
 
+    def _draw_key_bindings(self, screen: pygame.Surface, start_y: int) -> None:
+        rows = [
+            ("\u4e0a\u79fb", "move_up"),
+            ("\u4e0b\u79fb", "move_down"),
+            ("\u5de6\u79fb", "move_left"),
+            ("\u53f3\u79fb", "move_right"),
+            ("\u4fdd\u5b58", "save_game"),
+            ("\u6682\u505c", "pause_game"),
+            ("\u8fd4\u56de", "back"),
+        ]
+        for index, (label, action) in enumerate(rows):
+            text = f"{label}: {self.app.input_service.binding_text(action)}"
+            TextBlock(text, 22, TEXT_COLOR).draw_center(
+                screen,
+                (WINDOW_WIDTH // 2, start_y + index * 24),
+            )
+
     def _handle_mouse_click(self, position: tuple[int, int]) -> None:
-        selected = self.menu_list.hit_test(position, WINDOW_WIDTH // 2, 260)
+        selected = self._hit_test(position)
         if selected is None:
             return
         self.menu_list.selected_index = selected
-        if selected == 1:
+        if selected == 2:
             self.app.change_scene("menu")
+
+    def _hit_test(self, position: tuple[int, int]) -> int | None:
+        x, y = position
+        if not (WINDOW_WIDTH // 2 - 260 <= x <= WINDOW_WIDTH // 2 + 260):
+            return None
+        if 180 <= y <= 230:
+            return 0
+        if 245 <= y <= 455:
+            return 1
+        if 460 <= y <= 510:
+            return 2
+        return None
