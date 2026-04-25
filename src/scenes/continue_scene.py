@@ -28,6 +28,13 @@ class ContinueScene(BaseScene):
             self._handle_mouse_motion(event.pos)
         return True
 
+    def on_enter(self) -> None:
+        self.key_edges.sync("f3", system_keys.VK_F3)
+        self.key_edges.sync("up", system_keys.VK_UP, system_keys.VK_W)
+        self.key_edges.sync("down", system_keys.VK_DOWN, system_keys.VK_S)
+        self.key_edges.sync("confirm", system_keys.VK_RETURN, system_keys.VK_SPACE)
+        self.key_edges.sync("escape", system_keys.VK_ESCAPE)
+
     def update(self, delta_ms: int) -> None:
         _ = delta_ms
         if self.key_edges.just_pressed("f3", system_keys.VK_F3):

@@ -35,6 +35,7 @@ class App:
             "continue": ContinueScene(self),
         }
         self.scene = self.scenes["menu"]
+        self.scene.on_enter()
 
     def run(self) -> None:
         while self.is_running:
@@ -71,6 +72,7 @@ class App:
         target_scene = self.scenes.get(scene_name)
         if target_scene is not None:
             self.scene = target_scene
+            self.scene.on_enter()
 
     def stop(self) -> None:
         self.is_running = False
@@ -79,7 +81,9 @@ class App:
         self.save_service.clear()
         self.scenes["gameplay"] = GameplayScene(self)
         self.scene = self.scenes["gameplay"]
+        self.scene.on_enter()
 
     def load_gameplay_from_state(self, game_state: GameState) -> None:
         self.scenes["gameplay"] = GameplayScene(self, game_state=game_state)
         self.scene = self.scenes["gameplay"]
+        self.scene.on_enter()

@@ -57,6 +57,11 @@ class GameplayScene(BaseScene):
         _ = event
         return True
 
+    def on_enter(self) -> None:
+        self.key_edges.sync("f3", system_keys.VK_F3)
+        self.key_edges.sync("escape", system_keys.VK_ESCAPE)
+        self.key_edges.sync("restart", system_keys.VK_R)
+
     def update(self, delta_ms: int) -> None:
         if self.key_edges.just_pressed("f3", system_keys.VK_F3):
             self.app.input_debug.enabled = not self.app.input_debug.enabled

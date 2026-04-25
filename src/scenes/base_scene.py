@@ -15,5 +15,8 @@ class BaseScene:
     def update(self, delta_ms: int) -> None:
         _ = delta_ms
 
+    def on_enter(self) -> None:
+        """Called after the scene becomes active."""
+
     def render(self, screen: pygame.Surface) -> None:
         raise NotImplementedError

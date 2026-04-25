@@ -42,3 +42,6 @@ class KeyEdges:
         previous = self._previous.get(action, False)
         self._previous[action] = current
         return current and not previous
+
+    def sync(self, action: str, *virtual_keys: int) -> None:
+        self._previous[action] = any_pressed(*virtual_keys)
