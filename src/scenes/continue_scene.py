@@ -20,6 +20,8 @@ class ContinueScene(BaseScene):
         self.selected_index = 0
         self.hovered_index: int | None = None
         self.scroll_offset = 0
+        self.pending_delete_id: str | None = None
+        self.status_message = "\u9009\u62e9\u5b58\u6863\u540e Enter \u8bfb\u53d6\uff0cDelete \u5220\u9664\u3002"
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -34,7 +36,8 @@ class ContinueScene(BaseScene):
         self.save_slots = self.app.save_service.list_saves()
         self.selected_index = min(self.selected_index, self._last_index())
         self._sync_scroll_to_selection()
-        self.app.input_service.sync_many(["debug_toggle", "menu_up", "menu_down", "confirm", "back"])
+        self.pending_delete_id = None
+        self.app.input_service.sync_many(["debug_toggle", "menu_up", "menu_down", "confirm", "back", "delete_save"])
 
     def update(self, delta_ms: int) -> None:
         _ = delta_ms
@@ -50,9 +53,16 @@ class ContinueScene(BaseScene):
         elif self.app.input_service.just_pressed("confirm"):
             self.app.input_debug.record_system_key("confirm")
             self._activate_selected()
+        elif self.app.input_service.just_pressed("delete_save"):
+            self.app.input_debug.record_system_key("delete")
+            self._request_or_confirm_delete()
         elif self.app.input_service.just_pressed("back"):
             self.app.input_debug.record_system_key("escape")
-            self.app.change_scene("menu")
+            if self.pending_delete_id is not None:
+                self.pending_delete_id = None
+                self.status_message = "\u5df2\u53d6\u6d88\u5220\u9664\u3002"
+            else:
+                self.app.change_scene("menu")
 
     def render(self, screen: pygame.Surface) -> None:
         screen.fill(BACKGROUND_COLOR)
@@ -89,6 +99,7 @@ class ContinueScene(BaseScene):
             selected=self.selected_index == len(self.save_slots),
             hovered=self.hovered_index == len(self.save_slots),
         )
+        TextBlock(self.status_message, 24).draw_center(screen, (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 34))
 
         if self.app.input_debug.enabled:
             TextBlock(self.app.input_debug.last_key_text, 20).draw_topleft(screen, (16, WINDOW_HEIGHT - 32))
@@ -97,7 +108,7 @@ class ContinueScene(BaseScene):
         total = len(self.save_slots)
         start = self.scroll_offset + 1
         end = min(self.scroll_offset + self.MAX_VISIBLE_SAVES, total)
-        text = f"\u663e\u793a {start}-{end} / {total}  \u6eda\u8f6e\u6216 W/S \u6d4f\u89c8\u66f4\u591a\u5b58\u6863"
+        text = f"\u663e\u793a {start}-{end} / {total}  \u6eda\u8f6e\u6216 W/S \u6d4f\u89c8\uff0cDelete \u5220\u9664\u5b58\u6863"
         TextBlock(text, 22, TEXT_COLOR).draw_center(screen, (WINDOW_WIDTH // 2, 170))
 
     def _visible_slots(self) -> list[SaveSlot]:
@@ -109,7 +120,7 @@ class ContinueScene(BaseScene):
         center_x = WINDOW_WIDTH // 2
         y = 185 + visible_index * 58
         label = (
-            f"\u5b58\u6863 {actual_index + 1}  "
+            f"{actual_index + 1}. {slot.name}  "
             f"\u5206\u6570:{slot.game_state.score}  "
             f"\u957f\u5ea6:{len(slot.game_state.snake_body)}  "
             f"{slot.updated_at}"
@@ -129,6 +140,7 @@ class ContinueScene(BaseScene):
         self.selected_index = (self.selected_index + step) % (len(self.save_slots) + 1)
         self._sync_scroll_to_selection()
         self.hovered_index = None
+        self.pending_delete_id = None
 
     def _activate_selected(self) -> None:
         if self.selected_index < len(self.save_slots):
@@ -137,11 +149,32 @@ class ContinueScene(BaseScene):
             return
         self.app.change_scene("menu")
 
+    def _request_or_confirm_delete(self) -> None:
+        if self.selected_index >= len(self.save_slots):
+            self.status_message = "\u8bf7\u5148\u9009\u62e9\u8981\u5220\u9664\u7684\u5b58\u6863\u3002"
+            return
+
+        slot = self.save_slots[self.selected_index]
+        if self.pending_delete_id != slot.save_id:
+            self.pending_delete_id = slot.save_id
+            self.status_message = f"\u518d\u6309\u4e00\u6b21 Delete \u786e\u8ba4\u5220\u9664\u3010{slot.name}\u3011\uff1bEsc \u53d6\u6d88\u3002"
+            return
+
+        self.app.save_service.delete(slot.save_id)
+        deleted_name = slot.name
+        self.save_slots = self.app.save_service.list_saves()
+        self.selected_index = min(self.selected_index, self._last_index())
+        self.scroll_offset = min(self.scroll_offset, max(0, len(self.save_slots) - self.MAX_VISIBLE_SAVES))
+        self._sync_scroll_to_selection()
+        self.pending_delete_id = None
+        self.status_message = f"\u5df2\u5220\u9664\u5b58\u6863\u3010{deleted_name}\u3011\u3002"
+
     def _handle_mouse_click(self, position: tuple[int, int]) -> None:
         hit_index = self._hit_test(position)
         if hit_index is None:
             return
         self.selected_index = hit_index
+        self.pending_delete_id = None
         self._activate_selected()
 
     def _handle_mouse_motion(self, position: tuple[int, int]) -> None:
@@ -162,6 +195,7 @@ class ContinueScene(BaseScene):
         elif self.selected_index >= self.scroll_offset + self.MAX_VISIBLE_SAVES:
             self.selected_index = self.scroll_offset + self.MAX_VISIBLE_SAVES - 1
         self.hovered_index = None
+        self.pending_delete_id = None
 
     def _hit_test(self, position: tuple[int, int]) -> int | None:
         for visible_index, slot in enumerate(self._visible_slots()):

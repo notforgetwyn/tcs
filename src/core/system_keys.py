@@ -6,6 +6,7 @@ import sys
 
 VK_A = 0x41
 VK_D = 0x44
+VK_DELETE = 0x2E
 VK_DOWN = 0x28
 VK_E = 0x45
 VK_ESCAPE = 0x1B

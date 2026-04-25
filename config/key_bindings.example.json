@@ -49,5 +49,8 @@
   ],
   "restart_game": [
     "R"
+  ],
+  "delete_save": [
+    "DELETE"
   ]
 }

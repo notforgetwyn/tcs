@@ -22,10 +22,12 @@ DEFAULT_KEY_BINDINGS: dict[str, list[str]] = {
     "save_game": ["E"],
     "pause_game": ["P"],
     "restart_game": ["R"],
+    "delete_save": ["DELETE"],
 }
 
 
 SPECIAL_KEY_NAME_TO_VK: dict[str, int] = {
+    "DELETE": system_keys.VK_DELETE,
     "DOWN": system_keys.VK_DOWN,
     "ESCAPE": system_keys.VK_ESCAPE,
     "F3": system_keys.VK_F3,
