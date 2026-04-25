@@ -25,23 +25,33 @@ DEFAULT_KEY_BINDINGS: dict[str, list[str]] = {
 }
 
 
-KEY_NAME_TO_VK: dict[str, int] = {
-    "A": system_keys.VK_A,
-    "D": system_keys.VK_D,
+SPECIAL_KEY_NAME_TO_VK: dict[str, int] = {
     "DOWN": system_keys.VK_DOWN,
-    "E": system_keys.VK_E,
     "ESCAPE": system_keys.VK_ESCAPE,
     "F3": system_keys.VK_F3,
     "LEFT": system_keys.VK_LEFT,
-    "P": system_keys.VK_P,
-    "R": system_keys.VK_R,
     "RETURN": system_keys.VK_RETURN,
     "RIGHT": system_keys.VK_RIGHT,
-    "S": system_keys.VK_S,
     "SPACE": system_keys.VK_SPACE,
     "UP": system_keys.VK_UP,
-    "W": system_keys.VK_W,
 }
+
+KEY_NAME_TO_VK: dict[str, int] = {
+    **SPECIAL_KEY_NAME_TO_VK,
+    **{chr(code): code for code in range(ord("A"), ord("Z") + 1)},
+}
+
+CAPTURE_KEY_NAMES = [
+    "UP",
+    "DOWN",
+    "LEFT",
+    "RIGHT",
+    *[chr(code) for code in range(ord("A"), ord("Z") + 1)],
+    "RETURN",
+    "SPACE",
+    "ESCAPE",
+    "F3",
+]
 
 
 class InputService:
@@ -78,6 +88,30 @@ class InputService:
 
     def binding_text(self, action: str) -> str:
         return " / ".join(self.bindings.get(action, []))
+
+    def capture_key_press(self) -> str | None:
+        for key_name in CAPTURE_KEY_NAMES:
+            virtual_key = KEY_NAME_TO_VK[key_name]
+            if self.key_edges.just_pressed(f"capture:{key_name}", virtual_key):
+                return key_name
+        return None
+
+    def sync_capture_keys(self) -> None:
+        for key_name in CAPTURE_KEY_NAMES:
+            self.key_edges.sync(f"capture:{key_name}", KEY_NAME_TO_VK[key_name])
+
+    def set_single_binding(self, action: str, key_name: str) -> None:
+        if action not in DEFAULT_KEY_BINDINGS or key_name not in KEY_NAME_TO_VK:
+            return
+        self.bindings[action] = [key_name]
+        self.file_manager.save_json("config/key_bindings.json", self.bindings)
+        self.sync(action)
+
+    def action_using_key(self, key_name: str, *, exclude: str | None = None) -> str | None:
+        for action, key_names in self.bindings.items():
+            if action != exclude and key_name in key_names:
+                return action
+        return None
 
     def _load_bindings(self) -> dict[str, list[str]]:
         raw_data = self.file_manager.load_json("config/key_bindings.json", deepcopy(DEFAULT_KEY_BINDINGS))

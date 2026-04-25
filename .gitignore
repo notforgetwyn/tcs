@@ -30,6 +30,8 @@ dist/
 Thumbs.db
 
 # Runtime data
+config/key_bindings.json
+config/settings.json
 config/settings.local.json
 data/save.json
 data/*.tmp
