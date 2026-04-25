@@ -5,7 +5,6 @@ import pygame
 from src.constants import BACKGROUND_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
 from src.core.save_service import SaveSlot
 from src.scenes.base_scene import BaseScene
-from src.ui.button import Button
 from src.ui.text import TextBlock
 
 
@@ -86,19 +85,9 @@ class ContinueScene(BaseScene):
             self._draw_scroll_status(screen)
             for visible_index, slot in enumerate(self._visible_slots()):
                 actual_index = self.scroll_offset + visible_index
-                button = self._build_save_button(slot, actual_index, visible_index)
-                button.draw(
-                    screen,
-                    selected=actual_index == self.selected_index,
-                    hovered=actual_index == self.hovered_index,
-                )
+                self._draw_save_card(screen, slot, actual_index, visible_index)
 
-        back_button = self._build_back_button()
-        back_button.draw(
-            screen,
-            selected=self.selected_index == len(self.save_slots),
-            hovered=self.hovered_index == len(self.save_slots),
-        )
+        self._draw_back_button(screen)
         TextBlock(self.status_message, 24).draw_center(screen, (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 34))
 
         if self.app.input_debug.enabled:
@@ -114,27 +103,50 @@ class ContinueScene(BaseScene):
     def _visible_slots(self) -> list[SaveSlot]:
         return self.save_slots[self.scroll_offset : self.scroll_offset + self.MAX_VISIBLE_SAVES]
 
-    def _build_save_button(self, slot: SaveSlot, actual_index: int, visible_index: int) -> Button:
+    def _save_card_rect(self, visible_index: int) -> pygame.Rect:
         button_width = 600
-        button_height = 46
+        button_height = 54
         center_x = WINDOW_WIDTH // 2
-        y = 185 + visible_index * 58
-        label = (
-            f"{actual_index + 1}. {slot.name}  "
-            f"\u5206\u6570:{slot.game_state.score}  "
-            f"\u957f\u5ea6:{len(slot.game_state.snake_body)}  "
-            f"{slot.updated_at}"
-        )
-        return Button(label, pygame.Rect(center_x - button_width // 2, y, button_width, button_height), font_size=24)
+        y = 185 + visible_index * 60
+        return pygame.Rect(center_x - button_width // 2, y, button_width, button_height)
 
-    def _build_back_button(self) -> Button:
+    def _draw_save_card(self, screen: pygame.Surface, slot: SaveSlot, actual_index: int, visible_index: int) -> None:
+        rect = self._save_card_rect(visible_index)
+        selected = actual_index == self.selected_index
+        hovered = actual_index == self.hovered_index
+        if selected:
+            color = (52, 152, 219)
+            border_width = 3
+        elif hovered:
+            color = (41, 128, 185)
+            border_width = 2
+        else:
+            color = (44, 62, 80)
+            border_width = 1
+
+        pygame.draw.rect(screen, color, rect, border_radius=10)
+        pygame.draw.rect(screen, TEXT_COLOR, rect, width=border_width, border_radius=10)
+
+        title = f"{actual_index + 1}. {self._short_text(slot.name, 24)}"
+        summary = f"\u5206\u6570:{slot.game_state.score}  \u957f\u5ea6:{len(slot.game_state.snake_body)}  \u66f4\u65b0:{slot.updated_at}"
+        TextBlock(title, 22, TEXT_COLOR).draw_topleft(screen, (rect.x + 16, rect.y + 7))
+        TextBlock(summary, 18, TEXT_COLOR).draw_topleft(screen, (rect.x + 16, rect.y + 31))
+
+    def _back_button_rect(self) -> pygame.Rect:
         button_width = 260
         button_height = 52
         center_x = WINDOW_WIDTH // 2
-        return Button(
-            "\u8fd4\u56de\u4e3b\u83dc\u5355",
-            pygame.Rect(center_x - button_width // 2, 520, button_width, button_height),
-        )
+        return pygame.Rect(center_x - button_width // 2, 520, button_width, button_height)
+
+    def _draw_back_button(self, screen: pygame.Surface) -> None:
+        rect = self._back_button_rect()
+        selected = self.selected_index == len(self.save_slots)
+        hovered = self.hovered_index == len(self.save_slots)
+        color = (52, 152, 219) if selected else (41, 128, 185) if hovered else (44, 62, 80)
+        border_width = 3 if selected else 2 if hovered else 1
+        pygame.draw.rect(screen, color, rect, border_radius=10)
+        pygame.draw.rect(screen, TEXT_COLOR, rect, width=border_width, border_radius=10)
+        TextBlock("\u8fd4\u56de\u4e3b\u83dc\u5355", 30, TEXT_COLOR).draw_center(screen, rect.center)
 
     def _move_selection(self, step: int) -> None:
         self.selected_index = (self.selected_index + step) % (len(self.save_slots) + 1)
@@ -200,9 +212,9 @@ class ContinueScene(BaseScene):
     def _hit_test(self, position: tuple[int, int]) -> int | None:
         for visible_index, slot in enumerate(self._visible_slots()):
             actual_index = self.scroll_offset + visible_index
-            if self._build_save_button(slot, actual_index, visible_index).contains(position):
+            if self._save_card_rect(visible_index).collidepoint(position):
                 return actual_index
-        if self._build_back_button().contains(position):
+        if self._back_button_rect().collidepoint(position):
             return len(self.save_slots)
         return None
 
@@ -216,3 +228,8 @@ class ContinueScene(BaseScene):
 
     def _last_index(self) -> int:
         return len(self.save_slots)
+
+    def _short_text(self, text: str, limit: int) -> str:
+        if len(text) <= limit:
+            return text
+        return text[: limit - 1] + "..."

@@ -22,7 +22,6 @@ class App:
 
     def __init__(self) -> None:
         pygame.init()
-        pygame.display.set_caption(WINDOW_TITLE)
         self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         self.clock = pygame.time.Clock()
         self.is_running = True
@@ -38,6 +37,7 @@ class App:
         }
         self.scene = self.scenes["menu"]
         self.scene.on_enter()
+        self._update_window_title("menu")
 
     def run(self) -> None:
         while self.is_running:
@@ -75,6 +75,7 @@ class App:
         if target_scene is not None:
             self.scene = target_scene
             self.scene.on_enter()
+            self._update_window_title(scene_name)
 
     def stop(self) -> None:
         self.is_running = False
@@ -83,8 +84,13 @@ class App:
         self.scenes["gameplay"] = GameplayScene(self)
         self.scene = self.scenes["gameplay"]
         self.scene.on_enter()
+        self._update_window_title("gameplay")
 
     def load_gameplay_from_state(self, game_state: GameState, save_id: str | None = None) -> None:
         self.scenes["gameplay"] = GameplayScene(self, game_state=game_state, save_id=save_id)
         self.scene = self.scenes["gameplay"]
         self.scene.on_enter()
+        self._update_window_title("gameplay")
+
+    def _update_window_title(self, scene_name: str) -> None:
+        pygame.display.set_caption(f"{WINDOW_TITLE} - {scene_name}")
