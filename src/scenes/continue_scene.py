@@ -4,21 +4,23 @@ import pygame
 
 from src.constants import BACKGROUND_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
 from src.core import system_keys
-from src.models.game_state import GameState
+from src.core.save_service import SaveSlot
 from src.scenes.base_scene import BaseScene
 from src.ui.button import Button
 from src.ui.text import TextBlock
 
 
 class ContinueScene(BaseScene):
-    """Shows save status and lets the player continue when a save exists."""
+    """Shows multiple save slots and lets the player choose one to continue."""
+
+    MAX_VISIBLE_SAVES = 5
 
     def __init__(self, app) -> None:
         super().__init__(app)
-        self.game_state = self.app.save_service.load()
-        self.buttons = self._build_buttons()
+        self.save_slots = self.app.save_service.list_saves()
         self.selected_index = 0
         self.hovered_index: int | None = None
+        self.scroll_offset = 0
         self.key_edges = system_keys.KeyEdges()
 
     def handle_event(self, event: pygame.event.Event) -> bool:
@@ -29,6 +31,9 @@ class ContinueScene(BaseScene):
         return True
 
     def on_enter(self) -> None:
+        self.save_slots = self.app.save_service.list_saves()
+        self.selected_index = min(self.selected_index, self._last_index())
+        self._sync_scroll_to_selection()
         self.key_edges.sync("f3", system_keys.VK_F3)
         self.key_edges.sync("up", system_keys.VK_UP, system_keys.VK_W)
         self.key_edges.sync("down", system_keys.VK_DOWN, system_keys.VK_S)
@@ -56,9 +61,9 @@ class ContinueScene(BaseScene):
     def render(self, screen: pygame.Surface) -> None:
         screen.fill(BACKGROUND_COLOR)
         center_x = WINDOW_WIDTH // 2
-        TextBlock("\u7ee7\u7eed\u6e38\u620f", 64).draw_center(screen, (center_x, 110))
+        TextBlock("\u7ee7\u7eed\u6e38\u620f", 64).draw_center(screen, (center_x, 90))
 
-        if self.game_state is None:
+        if not self.save_slots:
             TextBlock("\u5f53\u524d\u6ca1\u6709\u53ef\u7ee7\u7eed\u7684\u5b58\u6863\u3002", 34).draw_center(
                 screen,
                 (center_x, 220),
@@ -68,75 +73,93 @@ class ContinueScene(BaseScene):
                 (center_x, 265),
             )
         else:
-            self._draw_save_summary(screen, self.game_state)
-
-        for index, button in enumerate(self.buttons):
-            button.draw(
+            TextBlock("\u9009\u62e9\u8981\u8bfb\u53d6\u7684\u5b58\u6863", 28, TEXT_COLOR).draw_center(
                 screen,
-                selected=index == self.selected_index,
-                hovered=index == self.hovered_index,
+                (center_x, 145),
             )
+            for visible_index, slot in enumerate(self._visible_slots()):
+                actual_index = self.scroll_offset + visible_index
+                button = self._build_save_button(slot, actual_index, visible_index)
+                button.draw(
+                    screen,
+                    selected=actual_index == self.selected_index,
+                    hovered=actual_index == self.hovered_index,
+                )
+
+        back_button = self._build_back_button()
+        back_button.draw(
+            screen,
+            selected=self.selected_index == len(self.save_slots),
+            hovered=self.hovered_index == len(self.save_slots),
+        )
 
         if self.app.input_debug.enabled:
             TextBlock(self.app.input_debug.last_key_text, 20).draw_topleft(screen, (16, WINDOW_HEIGHT - 32))
 
-    def _build_buttons(self) -> list[Button]:
-        button_width = 240
+    def _visible_slots(self) -> list[SaveSlot]:
+        return self.save_slots[self.scroll_offset : self.scroll_offset + self.MAX_VISIBLE_SAVES]
+
+    def _build_save_button(self, slot: SaveSlot, actual_index: int, visible_index: int) -> Button:
+        button_width = 600
+        button_height = 46
+        center_x = WINDOW_WIDTH // 2
+        y = 185 + visible_index * 58
+        label = (
+            f"\u5b58\u6863 {actual_index + 1}  "
+            f"\u5206\u6570:{slot.game_state.score}  "
+            f"\u957f\u5ea6:{len(slot.game_state.snake_body)}  "
+            f"{slot.updated_at}"
+        )
+        return Button(label, pygame.Rect(center_x - button_width // 2, y, button_width, button_height), font_size=24)
+
+    def _build_back_button(self) -> Button:
+        button_width = 260
         button_height = 52
         center_x = WINDOW_WIDTH // 2
-        start_y = 360
-
-        buttons: list[Button] = []
-        if self.game_state is not None:
-            buttons.append(
-                Button(
-                    "\u7ee7\u7eed\u6e38\u620f",
-                    pygame.Rect(center_x - button_width // 2, start_y, button_width, button_height),
-                )
-            )
-            start_y += 70
-
-        buttons.append(
-            Button(
-                "\u8fd4\u56de\u4e3b\u83dc\u5355",
-                pygame.Rect(center_x - button_width // 2, start_y, button_width, button_height),
-            )
+        return Button(
+            "\u8fd4\u56de\u4e3b\u83dc\u5355",
+            pygame.Rect(center_x - button_width // 2, 520, button_width, button_height),
         )
-        return buttons
-
-    def _draw_save_summary(self, screen: pygame.Surface, game_state: GameState) -> None:
-        center_x = WINDOW_WIDTH // 2
-        TextBlock("\u5df2\u627e\u5230\u53ef\u7ee7\u7eed\u7684\u5b58\u6863", 34).draw_center(screen, (center_x, 205))
-        TextBlock(f"\u5f53\u524d\u5206\u6570: {game_state.score}", 30, TEXT_COLOR).draw_center(
-            screen,
-            (center_x, 255),
-        )
-        TextBlock(
-            f"\u86c7\u8eab\u957f\u5ea6: {len(game_state.snake_body)}    \u901f\u5ea6: {game_state.move_interval_ms} ms",
-            28,
-        ).draw_center(screen, (center_x, 300))
 
     def _move_selection(self, step: int) -> None:
-        self.selected_index = (self.selected_index + step) % len(self.buttons)
+        self.selected_index = (self.selected_index + step) % (len(self.save_slots) + 1)
+        self._sync_scroll_to_selection()
 
     def _activate_selected(self) -> None:
-        label = self.buttons[self.selected_index].text
-        if label == "\u7ee7\u7eed\u6e38\u620f" and self.game_state is not None:
-            self.app.load_gameplay_from_state(self.game_state)
+        if self.selected_index < len(self.save_slots):
+            slot = self.save_slots[self.selected_index]
+            self.app.load_gameplay_from_state(slot.game_state, save_id=slot.save_id)
             return
         self.app.change_scene("menu")
 
     def _handle_mouse_click(self, position: tuple[int, int]) -> None:
-        for index, button in enumerate(self.buttons):
-            if button.contains(position):
-                self.selected_index = index
-                self._activate_selected()
-                return
+        hit_index = self._hit_test(position)
+        if hit_index is None:
+            return
+        self.selected_index = hit_index
+        self._activate_selected()
 
     def _handle_mouse_motion(self, position: tuple[int, int]) -> None:
-        self.hovered_index = None
-        for index, button in enumerate(self.buttons):
-            if button.contains(position):
-                self.hovered_index = index
-                self.selected_index = index
-                return
+        self.hovered_index = self._hit_test(position)
+        if self.hovered_index is not None:
+            self.selected_index = self.hovered_index
+
+    def _hit_test(self, position: tuple[int, int]) -> int | None:
+        for visible_index, slot in enumerate(self._visible_slots()):
+            actual_index = self.scroll_offset + visible_index
+            if self._build_save_button(slot, actual_index, visible_index).contains(position):
+                return actual_index
+        if self._build_back_button().contains(position):
+            return len(self.save_slots)
+        return None
+
+    def _sync_scroll_to_selection(self) -> None:
+        if self.selected_index >= len(self.save_slots):
+            return
+        if self.selected_index < self.scroll_offset:
+            self.scroll_offset = self.selected_index
+        elif self.selected_index >= self.scroll_offset + self.MAX_VISIBLE_SAVES:
+            self.scroll_offset = self.selected_index - self.MAX_VISIBLE_SAVES + 1
+
+    def _last_index(self) -> int:
+        return len(self.save_slots)

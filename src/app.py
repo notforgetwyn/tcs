@@ -78,12 +78,11 @@ class App:
         self.is_running = False
 
     def start_new_game(self) -> None:
-        self.save_service.clear()
         self.scenes["gameplay"] = GameplayScene(self)
         self.scene = self.scenes["gameplay"]
         self.scene.on_enter()
 
-    def load_gameplay_from_state(self, game_state: GameState) -> None:
-        self.scenes["gameplay"] = GameplayScene(self, game_state=game_state)
+    def load_gameplay_from_state(self, game_state: GameState, save_id: str | None = None) -> None:
+        self.scenes["gameplay"] = GameplayScene(self, game_state=game_state, save_id=save_id)
         self.scene = self.scenes["gameplay"]
         self.scene.on_enter()

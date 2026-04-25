@@ -28,7 +28,7 @@ from src.ui.font_manager import get_font
 class GameplayScene(BaseScene):
     """Playable gameplay scene with autosave support."""
 
-    def __init__(self, app, game_state: GameState | None = None) -> None:
+    def __init__(self, app, game_state: GameState | None = None, save_id: str | None = None) -> None:
         super().__init__(app)
         self.font = get_font(32)
         self.large_font = get_font(56)
@@ -38,6 +38,7 @@ class GameplayScene(BaseScene):
         self.key_edges = system_keys.KeyEdges()
         self.is_paused = False
         self.status_message = ""
+        self.save_id = save_id
 
         if game_state is None:
             self.move_interval_ms = self.app.settings_service.load().move_interval_ms
@@ -74,7 +75,7 @@ class GameplayScene(BaseScene):
         if self.key_edges.just_pressed("escape", system_keys.VK_ESCAPE):
             self.app.input_debug.record_system_key("escape")
             if self.is_game_over:
-                self.app.save_service.clear()
+                self._delete_current_save()
             else:
                 self._persist_progress()
             self.app.change_scene("menu")
@@ -94,8 +95,8 @@ class GameplayScene(BaseScene):
 
         if self.key_edges.just_pressed("save", system_keys.VK_E):
             self._persist_progress()
-            self.status_message = "\u5df2\u4fdd\u5b58\u5b58\u6863"
             self.app.input_debug.record_system_key("save")
+            self.app.change_scene("menu")
             return
 
         if self.is_paused:
@@ -214,7 +215,7 @@ class GameplayScene(BaseScene):
         screen.blit(subtitle_surface, subtitle_rect)
 
     def _persist_progress(self) -> None:
-        self.app.save_service.save(
+        self.save_id = self.app.save_service.save(
             GameState(
                 snake_body=list(self.snake.body),
                 direction=self.snake.direction,
@@ -222,9 +223,15 @@ class GameplayScene(BaseScene):
                 score=self.score,
                 move_interval_ms=self.move_interval_ms,
                 pending_growth=self.snake.pending_growth,
-            )
+            ),
+            self.save_id,
         )
 
     def _handle_game_over(self) -> None:
         self.is_game_over = True
-        self.app.save_service.clear()
+        self._delete_current_save()
+
+    def _delete_current_save(self) -> None:
+        if self.save_id is not None:
+            self.app.save_service.delete(self.save_id)
+            self.save_id = None
