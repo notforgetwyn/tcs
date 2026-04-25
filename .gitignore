@@ -31,4 +31,5 @@ Thumbs.db
 
 # Runtime data
 config/settings.local.json
+data/save.json
 data/*.tmp
