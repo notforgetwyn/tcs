@@ -20,9 +20,15 @@ class ContinueScene(BaseScene):
         self.hovered_index: int | None = None
         self.scroll_offset = 0
         self.pending_delete_id: str | None = None
+        self.rename_save_id: str | None = None
+        self.rename_buffer = ""
         self.status_message = "\u9009\u62e9\u5b58\u6863\u540e Enter \u8bfb\u53d6\uff0cDelete \u5220\u9664\u3002"
 
     def handle_event(self, event: pygame.event.Event) -> bool:
+        if self.rename_save_id is not None:
+            if event.type == pygame.TEXTINPUT:
+                self._append_rename_text(event.text)
+            return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self._handle_mouse_click(event.pos)
         elif event.type == pygame.MOUSEWHEEL:
@@ -36,10 +42,18 @@ class ContinueScene(BaseScene):
         self.selected_index = min(self.selected_index, self._last_index())
         self._sync_scroll_to_selection()
         self.pending_delete_id = None
-        self.app.input_service.sync_many(["debug_toggle", "menu_up", "menu_down", "confirm", "back", "delete_save"])
+        self.rename_save_id = None
+        self.rename_buffer = ""
+        self.app.input_service.sync_many(
+            ["debug_toggle", "menu_up", "menu_down", "confirm", "back", "delete_save", "rename_save"]
+        )
 
     def update(self, delta_ms: int) -> None:
         _ = delta_ms
+        if self.rename_save_id is not None:
+            self._update_rename_mode()
+            return
+
         if self.app.input_service.just_pressed("debug_toggle"):
             self.app.input_debug.enabled = not self.app.input_debug.enabled
             self.app.input_debug.record_system_key("f3")
@@ -55,6 +69,9 @@ class ContinueScene(BaseScene):
         elif self.app.input_service.just_pressed("delete_save"):
             self.app.input_debug.record_system_key("delete")
             self._request_or_confirm_delete()
+        elif self.app.input_service.just_pressed("rename_save"):
+            self.app.input_debug.record_system_key("rename")
+            self._start_rename()
         elif self.app.input_service.just_pressed("back"):
             self.app.input_debug.record_system_key("escape")
             if self.pending_delete_id is not None:
@@ -88,6 +105,8 @@ class ContinueScene(BaseScene):
                 self._draw_save_card(screen, slot, actual_index, visible_index)
 
         self._draw_back_button(screen)
+        if self.rename_save_id is not None:
+            self._draw_rename_panel(screen)
         TextBlock(self.status_message, 24).draw_center(screen, (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 34))
 
         if self.app.input_debug.enabled:
@@ -97,7 +116,7 @@ class ContinueScene(BaseScene):
         total = len(self.save_slots)
         start = self.scroll_offset + 1
         end = min(self.scroll_offset + self.MAX_VISIBLE_SAVES, total)
-        text = f"\u663e\u793a {start}-{end} / {total}  \u6eda\u8f6e\u6216 W/S \u6d4f\u89c8\uff0cDelete \u5220\u9664\u5b58\u6863"
+        text = f"\u663e\u793a {start}-{end} / {total}  \u6eda\u8f6e/W/S \u6d4f\u89c8\uff0cN \u91cd\u547d\u540d\uff0cDelete \u5220\u9664"
         TextBlock(text, 22, TEXT_COLOR).draw_center(screen, (WINDOW_WIDTH // 2, 170))
 
     def _visible_slots(self) -> list[SaveSlot]:
@@ -148,6 +167,14 @@ class ContinueScene(BaseScene):
         pygame.draw.rect(screen, TEXT_COLOR, rect, width=border_width, border_radius=10)
         TextBlock("\u8fd4\u56de\u4e3b\u83dc\u5355", 30, TEXT_COLOR).draw_center(screen, rect.center)
 
+    def _draw_rename_panel(self, screen: pygame.Surface) -> None:
+        panel_rect = pygame.Rect(120, 408, 560, 82)
+        pygame.draw.rect(screen, (27, 38, 49), panel_rect, border_radius=10)
+        pygame.draw.rect(screen, TEXT_COLOR, panel_rect, width=2, border_radius=10)
+        TextBlock("\u8f93\u5165\u65b0\u5b58\u6863\u540d\uff1a", 22, TEXT_COLOR).draw_topleft(screen, (panel_rect.x + 16, panel_rect.y + 12))
+        display_name = self.rename_buffer or "\u672a\u547d\u540d"
+        TextBlock(display_name, 26, TEXT_COLOR).draw_topleft(screen, (panel_rect.x + 16, panel_rect.y + 42))
+
     def _move_selection(self, step: int) -> None:
         self.selected_index = (self.selected_index + step) % (len(self.save_slots) + 1)
         self._sync_scroll_to_selection()
@@ -160,6 +187,56 @@ class ContinueScene(BaseScene):
             self.app.load_gameplay_from_state(slot.game_state, save_id=slot.save_id)
             return
         self.app.change_scene("menu")
+
+    def _start_rename(self) -> None:
+        if self.selected_index >= len(self.save_slots):
+            self.status_message = "\u8bf7\u5148\u9009\u62e9\u8981\u91cd\u547d\u540d\u7684\u5b58\u6863\u3002"
+            return
+        slot = self.save_slots[self.selected_index]
+        self.rename_save_id = slot.save_id
+        self.rename_buffer = slot.name
+        self.pending_delete_id = None
+        self.status_message = "\u8f93\u5165\u65b0\u540d\u79f0\uff0cEnter \u4fdd\u5b58\uff0cEsc \u53d6\u6d88\uff0cBackspace \u5220\u9664\u3002"
+        self.app.input_service.sync_key("RETURN")
+        self.app.input_service.sync_key("ESCAPE")
+        self.app.input_service.sync_key("BACKSPACE")
+        pygame.key.start_text_input()
+
+    def _update_rename_mode(self) -> None:
+        if self.app.input_service.just_pressed_key("RETURN"):
+            self._confirm_rename()
+        elif self.app.input_service.just_pressed_key("ESCAPE"):
+            self._cancel_rename()
+        elif self.app.input_service.just_pressed_key("BACKSPACE"):
+            self.rename_buffer = self.rename_buffer[:-1]
+
+    def _append_rename_text(self, text: str) -> None:
+        if not isinstance(text, str) or not text:
+            return
+        cleaned = "".join(ch for ch in text if ch.isprintable())
+        if not cleaned:
+            return
+        self.rename_buffer = (self.rename_buffer + cleaned)[:24]
+
+    def _confirm_rename(self) -> None:
+        if self.rename_save_id is None:
+            return
+        next_name = self.rename_buffer.strip()
+        if not next_name:
+            self.status_message = "\u5b58\u6863\u540d\u4e0d\u80fd\u4e3a\u7a7a\u3002"
+            return
+        self.app.save_service.rename(self.rename_save_id, next_name)
+        self.save_slots = self.app.save_service.list_saves()
+        self.rename_save_id = None
+        self.rename_buffer = ""
+        pygame.key.stop_text_input()
+        self.status_message = f"\u5df2\u91cd\u547d\u540d\u4e3a\u3010{next_name}\u3011\u3002"
+
+    def _cancel_rename(self) -> None:
+        self.rename_save_id = None
+        self.rename_buffer = ""
+        pygame.key.stop_text_input()
+        self.status_message = "\u5df2\u53d6\u6d88\u91cd\u547d\u540d\u3002"
 
     def _request_or_confirm_delete(self) -> None:
         if self.selected_index >= len(self.save_slots):
@@ -187,6 +264,7 @@ class ContinueScene(BaseScene):
             return
         self.selected_index = hit_index
         self.pending_delete_id = None
+        self.rename_save_id = None
         self._activate_selected()
 
     def _handle_mouse_motion(self, position: tuple[int, int]) -> None:
@@ -208,6 +286,7 @@ class ContinueScene(BaseScene):
             self.selected_index = self.scroll_offset + self.MAX_VISIBLE_SAVES - 1
         self.hovered_index = None
         self.pending_delete_id = None
+        self.rename_save_id = None
 
     def _hit_test(self, position: tuple[int, int]) -> int | None:
         for visible_index, slot in enumerate(self._visible_slots()):

@@ -52,5 +52,11 @@
   ],
   "delete_save": [
     "DELETE"
+  ],
+  "rename_save": [
+    "N"
+  ],
+  "rename_backspace": [
+    "BACKSPACE"
   ]
 }

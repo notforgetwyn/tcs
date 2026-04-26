@@ -23,6 +23,8 @@ DEFAULT_KEY_BINDINGS: dict[str, list[str]] = {
     "pause_game": ["P"],
     "restart_game": ["R"],
     "delete_save": ["DELETE"],
+    "rename_save": ["N"],
+    "rename_backspace": ["BACKSPACE"],
 }
 
 
@@ -32,6 +34,7 @@ SPECIAL_KEY_NAME_TO_VK: dict[str, int] = {
     "ESCAPE": system_keys.VK_ESCAPE,
     "F3": system_keys.VK_F3,
     "LEFT": system_keys.VK_LEFT,
+    "BACKSPACE": system_keys.VK_BACKSPACE,
     "RETURN": system_keys.VK_RETURN,
     "RIGHT": system_keys.VK_RIGHT,
     "SPACE": system_keys.VK_SPACE,
@@ -51,6 +54,7 @@ CAPTURE_KEY_NAMES = [
     *[chr(code) for code in range(ord("A"), ord("Z") + 1)],
     "RETURN",
     "SPACE",
+    "BACKSPACE",
     "ESCAPE",
     "F3",
 ]
@@ -67,11 +71,22 @@ class InputService:
     def just_pressed(self, action: str) -> bool:
         return self.key_edges.just_pressed(action, *self._virtual_keys(action))
 
+    def just_pressed_key(self, key_name: str) -> bool:
+        virtual_key = KEY_NAME_TO_VK.get(key_name)
+        if virtual_key is None:
+            return False
+        return self.key_edges.just_pressed(f"key:{key_name}", virtual_key)
+
     def pressed(self, action: str) -> bool:
         return system_keys.any_pressed(*self._virtual_keys(action))
 
     def sync(self, action: str) -> None:
         self.key_edges.sync(action, *self._virtual_keys(action))
+
+    def sync_key(self, key_name: str) -> None:
+        virtual_key = KEY_NAME_TO_VK.get(key_name)
+        if virtual_key is not None:
+            self.key_edges.sync(f"key:{key_name}", virtual_key)
 
     def sync_many(self, actions: list[str]) -> None:
         for action in actions:
