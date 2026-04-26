@@ -8,6 +8,7 @@ from src.scenes.base_scene import BaseScene
 from src.ui.button import Button
 from src.ui.panel import Panel
 from src.ui.save_card import SaveCard
+from src.ui.scroll_list import ScrollList
 from src.ui.text import TextBlock
 
 
@@ -19,9 +20,9 @@ class ContinueScene(BaseScene):
     def __init__(self, app) -> None:
         super().__init__(app)
         self.save_slots = self.app.save_service.list_saves()
-        self.selected_index = 0
+        self.save_list = ScrollList(self.MAX_VISIBLE_SAVES)
+        self.save_list.configure(len(self.save_slots), extra_selectable_count=1)
         self.hovered_index: int | None = None
-        self.scroll_offset = 0
         self.pending_delete_id: str | None = None
         self.rename_save_id: str | None = None
         self.rename_buffer = ""
@@ -42,8 +43,7 @@ class ContinueScene(BaseScene):
 
     def on_enter(self) -> None:
         self.save_slots = self.app.save_service.list_saves()
-        self.selected_index = min(self.selected_index, self._last_index())
-        self._sync_scroll_to_selection()
+        self.save_list.configure(len(self.save_slots), extra_selectable_count=1)
         self.pending_delete_id = None
         self.rename_save_id = None
         self.rename_buffer = ""
@@ -103,8 +103,7 @@ class ContinueScene(BaseScene):
                 (center_x, 145),
             )
             self._draw_scroll_status(screen)
-            for visible_index, slot in enumerate(self._visible_slots()):
-                actual_index = self.scroll_offset + visible_index
+            for visible_index, (actual_index, slot) in enumerate(self.save_list.visible_items(self.save_slots)):
                 self._save_card(slot, actual_index, visible_index).draw(screen)
 
         self._draw_back_button(screen)
@@ -117,13 +116,9 @@ class ContinueScene(BaseScene):
 
     def _draw_scroll_status(self, screen: pygame.Surface) -> None:
         total = len(self.save_slots)
-        start = self.scroll_offset + 1
-        end = min(self.scroll_offset + self.MAX_VISIBLE_SAVES, total)
+        start, end, total = self.save_list.scroll_status()
         text = f"\u663e\u793a {start}-{end} / {total}  \u6eda\u8f6e/W/S \u6d4f\u89c8\uff0cN \u91cd\u547d\u540d\uff0cDelete \u5220\u9664"
         TextBlock(text, 22, TEXT_COLOR).draw_center(screen, (WINDOW_WIDTH // 2, 170))
-
-    def _visible_slots(self) -> list[SaveSlot]:
-        return self.save_slots[self.scroll_offset : self.scroll_offset + self.MAX_VISIBLE_SAVES]
 
     def _save_card_rect(self, visible_index: int) -> pygame.Rect:
         button_width = 600
@@ -137,7 +132,7 @@ class ContinueScene(BaseScene):
             slot,
             self._save_card_rect(visible_index),
             display_index=actual_index + 1,
-            selected=actual_index == self.selected_index,
+            selected=actual_index == self.save_list.selected_index,
             hovered=actual_index == self.hovered_index,
         )
 
@@ -149,7 +144,7 @@ class ContinueScene(BaseScene):
 
     def _draw_back_button(self, screen: pygame.Surface) -> None:
         rect = self._back_button_rect()
-        selected = self.selected_index == len(self.save_slots)
+        selected = self.save_list.selected_index == len(self.save_slots)
         hovered = self.hovered_index == len(self.save_slots)
         Button("\u8fd4\u56de\u4e3b\u83dc\u5355", rect, font_size=30, normal_color=BUTTON_NORMAL_COLOR).draw(
             screen,
@@ -165,23 +160,22 @@ class ContinueScene(BaseScene):
         TextBlock(display_name, 26, TEXT_COLOR).draw_topleft(screen, (panel_rect.x + 16, panel_rect.y + 42))
 
     def _move_selection(self, step: int) -> None:
-        self.selected_index = (self.selected_index + step) % (len(self.save_slots) + 1)
-        self._sync_scroll_to_selection()
+        self.save_list.move_selection(step)
         self.hovered_index = None
         self.pending_delete_id = None
 
     def _activate_selected(self) -> None:
-        if self.selected_index < len(self.save_slots):
-            slot = self.save_slots[self.selected_index]
+        if self.save_list.selected_index < len(self.save_slots):
+            slot = self.save_slots[self.save_list.selected_index]
             self.app.load_gameplay_from_state(slot.game_state, save_id=slot.save_id)
             return
         self.app.change_scene("menu")
 
     def _start_rename(self) -> None:
-        if self.selected_index >= len(self.save_slots):
+        if self.save_list.selected_index >= len(self.save_slots):
             self.status_message = "\u8bf7\u5148\u9009\u62e9\u8981\u91cd\u547d\u540d\u7684\u5b58\u6863\u3002"
             return
-        slot = self.save_slots[self.selected_index]
+        slot = self.save_slots[self.save_list.selected_index]
         self.rename_save_id = slot.save_id
         self.rename_buffer = slot.name
         self.pending_delete_id = None
@@ -228,11 +222,11 @@ class ContinueScene(BaseScene):
         self.status_message = "\u5df2\u53d6\u6d88\u91cd\u547d\u540d\u3002"
 
     def _request_or_confirm_delete(self) -> None:
-        if self.selected_index >= len(self.save_slots):
+        if self.save_list.selected_index >= len(self.save_slots):
             self.status_message = "\u8bf7\u5148\u9009\u62e9\u8981\u5220\u9664\u7684\u5b58\u6863\u3002"
             return
 
-        slot = self.save_slots[self.selected_index]
+        slot = self.save_slots[self.save_list.selected_index]
         if self.pending_delete_id != slot.save_id:
             self.pending_delete_id = slot.save_id
             self.status_message = f"\u518d\u6309\u4e00\u6b21 Delete \u786e\u8ba4\u5220\u9664\u3010{slot.name}\u3011\uff1bEsc \u53d6\u6d88\u3002"
@@ -241,9 +235,7 @@ class ContinueScene(BaseScene):
         self.app.save_service.delete(slot.save_id)
         deleted_name = slot.name
         self.save_slots = self.app.save_service.list_saves()
-        self.selected_index = min(self.selected_index, self._last_index())
-        self.scroll_offset = min(self.scroll_offset, max(0, len(self.save_slots) - self.MAX_VISIBLE_SAVES))
-        self._sync_scroll_to_selection()
+        self.save_list.configure(len(self.save_slots), extra_selectable_count=1)
         self.pending_delete_id = None
         self.status_message = f"\u5df2\u5220\u9664\u5b58\u6863\u3010{deleted_name}\u3011\u3002"
 
@@ -251,7 +243,7 @@ class ContinueScene(BaseScene):
         action_hit = self._hit_test_action(position)
         if action_hit is not None:
             action, actual_index = action_hit
-            self.selected_index = actual_index
+            self.save_list.selected_index = actual_index
             self.hovered_index = actual_index
             if action == "rename":
                 self._start_rename()
@@ -262,7 +254,7 @@ class ContinueScene(BaseScene):
         hit_index = self._hit_test(position)
         if hit_index is None:
             return
-        self.selected_index = hit_index
+        self.save_list.selected_index = hit_index
         self.pending_delete_id = None
         self.rename_save_id = None
         self._activate_selected()
@@ -270,27 +262,17 @@ class ContinueScene(BaseScene):
     def _handle_mouse_motion(self, position: tuple[int, int]) -> None:
         self.hovered_index = self._hit_test(position)
         if self.hovered_index is not None:
-            self.selected_index = self.hovered_index
-            self._sync_scroll_to_selection()
+            self.save_list.selected_index = self.hovered_index
+            self.save_list.sync_to_selection()
 
     def _scroll(self, step: int) -> None:
-        if len(self.save_slots) <= self.MAX_VISIBLE_SAVES:
-            return
-
-        max_offset = len(self.save_slots) - self.MAX_VISIBLE_SAVES
-        self.scroll_offset = max(0, min(max_offset, self.scroll_offset + step))
-
-        if self.selected_index < self.scroll_offset:
-            self.selected_index = self.scroll_offset
-        elif self.selected_index >= self.scroll_offset + self.MAX_VISIBLE_SAVES:
-            self.selected_index = self.scroll_offset + self.MAX_VISIBLE_SAVES - 1
+        self.save_list.scroll(step)
         self.hovered_index = None
         self.pending_delete_id = None
         self.rename_save_id = None
 
     def _hit_test(self, position: tuple[int, int]) -> int | None:
-        for visible_index, _slot in enumerate(self._visible_slots()):
-            actual_index = self.scroll_offset + visible_index
+        for visible_index, (actual_index, _slot) in enumerate(self.save_list.visible_items(self.save_slots)):
             if self._save_card_rect(visible_index).collidepoint(position):
                 return actual_index
         if self._back_button_rect().collidepoint(position):
@@ -298,20 +280,8 @@ class ContinueScene(BaseScene):
         return None
 
     def _hit_test_action(self, position: tuple[int, int]) -> tuple[str, int] | None:
-        for visible_index, slot in enumerate(self._visible_slots()):
-            actual_index = self.scroll_offset + visible_index
+        for visible_index, (actual_index, slot) in enumerate(self.save_list.visible_items(self.save_slots)):
             action = self._save_card(slot, actual_index, visible_index).action_at(position)
             if action is not None:
                 return action, actual_index
         return None
-
-    def _sync_scroll_to_selection(self) -> None:
-        if self.selected_index >= len(self.save_slots):
-            return
-        if self.selected_index < self.scroll_offset:
-            self.scroll_offset = self.selected_index
-        elif self.selected_index >= self.scroll_offset + self.MAX_VISIBLE_SAVES:
-            self.scroll_offset = self.selected_index - self.MAX_VISIBLE_SAVES + 1
-
-    def _last_index(self) -> int:
-        return len(self.save_slots)
