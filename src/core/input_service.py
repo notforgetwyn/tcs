@@ -124,6 +124,11 @@ class InputService:
         self.file_manager.save_json("config/key_bindings.json", self.bindings)
         self.sync(action)
 
+    def reset_to_defaults(self) -> None:
+        self.bindings = deepcopy(DEFAULT_KEY_BINDINGS)
+        self.file_manager.save_json("config/key_bindings.json", self.bindings)
+        self.key_edges = system_keys.KeyEdges()
+
     def action_using_key(self, key_name: str, *, exclude: str | None = None) -> str | None:
         for action, key_names in self.bindings.items():
             if action != exclude and key_name in key_names:

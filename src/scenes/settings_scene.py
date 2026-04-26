@@ -81,6 +81,7 @@ class SettingsScene(BaseScene):
         TextBlock("\u8bbe\u7f6e", 56).draw_center(screen, (WINDOW_WIDTH // 2, 54))
         self._draw_speed_row(screen)
         self._draw_key_binding_rows(screen)
+        self._draw_reset_row(screen)
         self._draw_back_row(screen)
         TextBlock(self.status_message, 24).draw_center(screen, (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 34))
 
@@ -117,7 +118,13 @@ class SettingsScene(BaseScene):
         index = self._back_index()
         color = (52, 152, 219) if self.selected_index == index else TEXT_COLOR
         text = "> \u8fd4\u56de\u4e3b\u83dc\u5355 <" if self.selected_index == index else "\u8fd4\u56de\u4e3b\u83dc\u5355"
-        TextBlock(text, 30, color).draw_center(screen, (WINDOW_WIDTH // 2, 525))
+        TextBlock(text, 28, color).draw_center(screen, (WINDOW_WIDTH // 2, 532))
+
+    def _draw_reset_row(self, screen: pygame.Surface) -> None:
+        index = self._reset_index()
+        color = (52, 152, 219) if self.selected_index == index else TEXT_COLOR
+        text = "> \u6062\u590d\u9ed8\u8ba4\u952e\u4f4d <" if self.selected_index == index else "\u6062\u590d\u9ed8\u8ba4\u952e\u4f4d"
+        TextBlock(text, 28, color).draw_center(screen, (WINDOW_WIDTH // 2, 488))
 
     def _update_key_capture(self) -> None:
         key_name = self.app.input_service.capture_key_press()
@@ -155,6 +162,15 @@ class SettingsScene(BaseScene):
             self.capture_action = action
             self.status_message = f"\u8bf7\u6309\u65b0\u6309\u952e\u8bbe\u7f6e\u3010{label}\u3011\uff1bEsc \u53d6\u6d88\u3002"
             self.app.input_service.sync_capture_keys()
+            return
+
+        if self.selected_index == self._reset_index():
+            self.app.input_service.reset_to_defaults()
+            self.app.input_service.sync_many(
+                ["debug_toggle", "menu_up", "menu_down", "settings_left", "settings_right", "confirm", "back"]
+            )
+            self.app.input_service.sync_capture_keys()
+            self.status_message = "\u5df2\u6062\u590d\u9ed8\u8ba4\u952e\u4f4d\uff0c\u7acb\u5373\u751f\u6548\u3002"
             return
 
         self.app.change_scene("menu")
@@ -207,7 +223,9 @@ class SettingsScene(BaseScene):
             row_y = self._row_y(row_index)
             if row_y - 16 <= y <= row_y + 16:
                 return row_index
-        if 502 <= y <= 548:
+        if 468 <= y <= 508:
+            return self._reset_index()
+        if 514 <= y <= 552:
             return self._back_index()
         return None
 
@@ -215,6 +233,9 @@ class SettingsScene(BaseScene):
         return 220 + (row_index - 1) * 36
 
     def _back_index(self) -> int:
+        return len(KEY_BINDING_ROWS) + 2
+
+    def _reset_index(self) -> int:
         return len(KEY_BINDING_ROWS) + 1
 
     def _key_row_from_index(self, index: int) -> tuple[str, str] | None:

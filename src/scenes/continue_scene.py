@@ -22,7 +22,7 @@ class ContinueScene(BaseScene):
         self.pending_delete_id: str | None = None
         self.rename_save_id: str | None = None
         self.rename_buffer = ""
-        self.status_message = "\u9009\u62e9\u5b58\u6863\u540e Enter \u8bfb\u53d6\uff0cDelete \u5220\u9664\u3002"
+        self.status_message = "\u9009\u62e9\u5b58\u6863\u540e Enter \u8bfb\u53d6\uff0cN \u91cd\u547d\u540d\uff0cDelete \u5220\u9664\u3002"
 
     def handle_event(self, event: pygame.event.Event) -> bool:
         if self.rename_save_id is not None:
@@ -146,10 +146,29 @@ class ContinueScene(BaseScene):
         pygame.draw.rect(screen, color, rect, border_radius=10)
         pygame.draw.rect(screen, TEXT_COLOR, rect, width=border_width, border_radius=10)
 
-        title = f"{actual_index + 1}. {self._short_text(slot.name, 24)}"
+        title = f"{actual_index + 1}. {self._short_text(slot.name, 18)}"
         summary = f"\u5206\u6570:{slot.game_state.score}  \u957f\u5ea6:{len(slot.game_state.snake_body)}  \u66f4\u65b0:{slot.updated_at}"
         TextBlock(title, 22, TEXT_COLOR).draw_topleft(screen, (rect.x + 16, rect.y + 7))
         TextBlock(summary, 18, TEXT_COLOR).draw_topleft(screen, (rect.x + 16, rect.y + 31))
+        self._draw_save_action_buttons(screen, visible_index)
+
+    def _save_action_rects(self, visible_index: int) -> dict[str, pygame.Rect]:
+        card_rect = self._save_card_rect(visible_index)
+        button_width = 72
+        button_height = 24
+        button_y = card_rect.y + 15
+        delete_rect = pygame.Rect(card_rect.right - button_width - 12, button_y, button_width, button_height)
+        rename_rect = pygame.Rect(delete_rect.x - button_width - 8, button_y, button_width, button_height)
+        return {"rename": rename_rect, "delete": delete_rect}
+
+    def _draw_save_action_buttons(self, screen: pygame.Surface, visible_index: int) -> None:
+        action_rects = self._save_action_rects(visible_index)
+        labels = {"rename": "\u91cd\u547d\u540d", "delete": "\u5220\u9664"}
+        colors = {"rename": (39, 174, 96), "delete": (192, 57, 43)}
+        for action, rect in action_rects.items():
+            pygame.draw.rect(screen, colors[action], rect, border_radius=6)
+            pygame.draw.rect(screen, TEXT_COLOR, rect, width=1, border_radius=6)
+            TextBlock(labels[action], 16, TEXT_COLOR).draw_center(screen, rect.center)
 
     def _back_button_rect(self) -> pygame.Rect:
         button_width = 260
@@ -259,6 +278,17 @@ class ContinueScene(BaseScene):
         self.status_message = f"\u5df2\u5220\u9664\u5b58\u6863\u3010{deleted_name}\u3011\u3002"
 
     def _handle_mouse_click(self, position: tuple[int, int]) -> None:
+        action_hit = self._hit_test_action(position)
+        if action_hit is not None:
+            action, actual_index = action_hit
+            self.selected_index = actual_index
+            self.hovered_index = actual_index
+            if action == "rename":
+                self._start_rename()
+            else:
+                self._request_or_confirm_delete()
+            return
+
         hit_index = self._hit_test(position)
         if hit_index is None:
             return
@@ -289,12 +319,20 @@ class ContinueScene(BaseScene):
         self.rename_save_id = None
 
     def _hit_test(self, position: tuple[int, int]) -> int | None:
-        for visible_index, slot in enumerate(self._visible_slots()):
+        for visible_index, _slot in enumerate(self._visible_slots()):
             actual_index = self.scroll_offset + visible_index
             if self._save_card_rect(visible_index).collidepoint(position):
                 return actual_index
         if self._back_button_rect().collidepoint(position):
             return len(self.save_slots)
+        return None
+
+    def _hit_test_action(self, position: tuple[int, int]) -> tuple[str, int] | None:
+        for visible_index, _slot in enumerate(self._visible_slots()):
+            actual_index = self.scroll_offset + visible_index
+            for action, rect in self._save_action_rects(visible_index).items():
+                if rect.collidepoint(position):
+                    return action, actual_index
         return None
 
     def _sync_scroll_to_selection(self) -> None:
