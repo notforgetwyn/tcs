@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import pygame
 
-from src.constants import BACKGROUND_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
+from src.constants import BACKGROUND_COLOR, BUTTON_NORMAL_COLOR, TEXT_COLOR, WINDOW_HEIGHT, WINDOW_WIDTH
 from src.core.save_service import SaveSlot
 from src.scenes.base_scene import BaseScene
+from src.ui.button import Button
 from src.ui.text import TextBlock
 
 
@@ -166,9 +167,14 @@ class ContinueScene(BaseScene):
         labels = {"rename": "\u91cd\u547d\u540d", "delete": "\u5220\u9664"}
         colors = {"rename": (39, 174, 96), "delete": (192, 57, 43)}
         for action, rect in action_rects.items():
-            pygame.draw.rect(screen, colors[action], rect, border_radius=6)
-            pygame.draw.rect(screen, TEXT_COLOR, rect, width=1, border_radius=6)
-            TextBlock(labels[action], 16, TEXT_COLOR).draw_center(screen, rect.center)
+            Button(
+                labels[action],
+                rect,
+                font_size=16,
+                normal_color=colors[action],
+                active_color=colors[action],
+                hover_color=colors[action],
+            ).draw(screen)
 
     def _back_button_rect(self) -> pygame.Rect:
         button_width = 260
@@ -180,11 +186,11 @@ class ContinueScene(BaseScene):
         rect = self._back_button_rect()
         selected = self.selected_index == len(self.save_slots)
         hovered = self.hovered_index == len(self.save_slots)
-        color = (52, 152, 219) if selected else (41, 128, 185) if hovered else (44, 62, 80)
-        border_width = 3 if selected else 2 if hovered else 1
-        pygame.draw.rect(screen, color, rect, border_radius=10)
-        pygame.draw.rect(screen, TEXT_COLOR, rect, width=border_width, border_radius=10)
-        TextBlock("\u8fd4\u56de\u4e3b\u83dc\u5355", 30, TEXT_COLOR).draw_center(screen, rect.center)
+        Button("\u8fd4\u56de\u4e3b\u83dc\u5355", rect, font_size=30, normal_color=BUTTON_NORMAL_COLOR).draw(
+            screen,
+            selected=selected,
+            hovered=hovered,
+        )
 
     def _draw_rename_panel(self, screen: pygame.Surface) -> None:
         panel_rect = pygame.Rect(120, 408, 560, 82)

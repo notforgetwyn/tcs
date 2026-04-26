@@ -10,6 +10,7 @@ from src.core.settings_service import (
     Settings,
 )
 from src.scenes.base_scene import BaseScene
+from src.ui.button import Button
 from src.ui.text import TextBlock
 
 
@@ -116,15 +117,17 @@ class SettingsScene(BaseScene):
 
     def _draw_back_row(self, screen: pygame.Surface) -> None:
         index = self._back_index()
-        color = (52, 152, 219) if self.selected_index == index else TEXT_COLOR
-        text = "> \u8fd4\u56de\u4e3b\u83dc\u5355 <" if self.selected_index == index else "\u8fd4\u56de\u4e3b\u83dc\u5355"
-        TextBlock(text, 28, color).draw_center(screen, (WINDOW_WIDTH // 2, 532))
+        Button("\u8fd4\u56de\u4e3b\u83dc\u5355", self._back_button_rect(), font_size=26).draw(
+            screen,
+            selected=self.selected_index == index,
+        )
 
     def _draw_reset_row(self, screen: pygame.Surface) -> None:
         index = self._reset_index()
-        color = (52, 152, 219) if self.selected_index == index else TEXT_COLOR
-        text = "> \u6062\u590d\u9ed8\u8ba4\u952e\u4f4d <" if self.selected_index == index else "\u6062\u590d\u9ed8\u8ba4\u952e\u4f4d"
-        TextBlock(text, 28, color).draw_center(screen, (WINDOW_WIDTH // 2, 488))
+        Button("\u6062\u590d\u9ed8\u8ba4\u952e\u4f4d", self._reset_button_rect(), font_size=26).draw(
+            screen,
+            selected=self.selected_index == index,
+        )
 
     def _update_key_capture(self) -> None:
         key_name = self.app.input_service.capture_key_press()
@@ -223,9 +226,9 @@ class SettingsScene(BaseScene):
             row_y = self._row_y(row_index)
             if row_y - 16 <= y <= row_y + 16:
                 return row_index
-        if 468 <= y <= 508:
+        if self._reset_button_rect().collidepoint(position):
             return self._reset_index()
-        if 514 <= y <= 552:
+        if self._back_button_rect().collidepoint(position):
             return self._back_index()
         return None
 
@@ -237,6 +240,12 @@ class SettingsScene(BaseScene):
 
     def _reset_index(self) -> int:
         return len(KEY_BINDING_ROWS) + 1
+
+    def _reset_button_rect(self) -> pygame.Rect:
+        return pygame.Rect(WINDOW_WIDTH // 2 - 150, 466, 300, 44)
+
+    def _back_button_rect(self) -> pygame.Rect:
+        return pygame.Rect(WINDOW_WIDTH // 2 - 150, 518, 300, 44)
 
     def _key_row_from_index(self, index: int) -> tuple[str, str] | None:
         if 1 <= index <= len(KEY_BINDING_ROWS):
