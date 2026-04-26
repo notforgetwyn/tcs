@@ -6,6 +6,8 @@ from src.constants import BACKGROUND_COLOR, BUTTON_NORMAL_COLOR, TEXT_COLOR, WIN
 from src.core.save_service import SaveSlot
 from src.scenes.base_scene import BaseScene
 from src.ui.button import Button
+from src.ui.panel import Panel
+from src.ui.save_card import SaveCard
 from src.ui.text import TextBlock
 
 
@@ -103,7 +105,7 @@ class ContinueScene(BaseScene):
             self._draw_scroll_status(screen)
             for visible_index, slot in enumerate(self._visible_slots()):
                 actual_index = self.scroll_offset + visible_index
-                self._draw_save_card(screen, slot, actual_index, visible_index)
+                self._save_card(slot, actual_index, visible_index).draw(screen)
 
         self._draw_back_button(screen)
         if self.rename_save_id is not None:
@@ -130,51 +132,14 @@ class ContinueScene(BaseScene):
         y = 185 + visible_index * 60
         return pygame.Rect(center_x - button_width // 2, y, button_width, button_height)
 
-    def _draw_save_card(self, screen: pygame.Surface, slot: SaveSlot, actual_index: int, visible_index: int) -> None:
-        rect = self._save_card_rect(visible_index)
-        selected = actual_index == self.selected_index
-        hovered = actual_index == self.hovered_index
-        if selected:
-            color = (52, 152, 219)
-            border_width = 3
-        elif hovered:
-            color = (41, 128, 185)
-            border_width = 2
-        else:
-            color = (44, 62, 80)
-            border_width = 1
-
-        pygame.draw.rect(screen, color, rect, border_radius=10)
-        pygame.draw.rect(screen, TEXT_COLOR, rect, width=border_width, border_radius=10)
-
-        title = f"{actual_index + 1}. {self._short_text(slot.name, 18)}"
-        summary = f"\u5206\u6570:{slot.game_state.score}  \u957f\u5ea6:{len(slot.game_state.snake_body)}  \u66f4\u65b0:{slot.updated_at}"
-        TextBlock(title, 22, TEXT_COLOR).draw_topleft(screen, (rect.x + 16, rect.y + 7))
-        TextBlock(summary, 18, TEXT_COLOR).draw_topleft(screen, (rect.x + 16, rect.y + 31))
-        self._draw_save_action_buttons(screen, visible_index)
-
-    def _save_action_rects(self, visible_index: int) -> dict[str, pygame.Rect]:
-        card_rect = self._save_card_rect(visible_index)
-        button_width = 72
-        button_height = 24
-        button_y = card_rect.y + 15
-        delete_rect = pygame.Rect(card_rect.right - button_width - 12, button_y, button_width, button_height)
-        rename_rect = pygame.Rect(delete_rect.x - button_width - 8, button_y, button_width, button_height)
-        return {"rename": rename_rect, "delete": delete_rect}
-
-    def _draw_save_action_buttons(self, screen: pygame.Surface, visible_index: int) -> None:
-        action_rects = self._save_action_rects(visible_index)
-        labels = {"rename": "\u91cd\u547d\u540d", "delete": "\u5220\u9664"}
-        colors = {"rename": (39, 174, 96), "delete": (192, 57, 43)}
-        for action, rect in action_rects.items():
-            Button(
-                labels[action],
-                rect,
-                font_size=16,
-                normal_color=colors[action],
-                active_color=colors[action],
-                hover_color=colors[action],
-            ).draw(screen)
+    def _save_card(self, slot: SaveSlot, actual_index: int, visible_index: int) -> SaveCard:
+        return SaveCard(
+            slot,
+            self._save_card_rect(visible_index),
+            display_index=actual_index + 1,
+            selected=actual_index == self.selected_index,
+            hovered=actual_index == self.hovered_index,
+        )
 
     def _back_button_rect(self) -> pygame.Rect:
         button_width = 260
@@ -194,8 +159,7 @@ class ContinueScene(BaseScene):
 
     def _draw_rename_panel(self, screen: pygame.Surface) -> None:
         panel_rect = pygame.Rect(120, 408, 560, 82)
-        pygame.draw.rect(screen, (27, 38, 49), panel_rect, border_radius=10)
-        pygame.draw.rect(screen, TEXT_COLOR, panel_rect, width=2, border_radius=10)
+        Panel(panel_rect).draw(screen)
         TextBlock("\u8f93\u5165\u65b0\u5b58\u6863\u540d\uff1a", 22, TEXT_COLOR).draw_topleft(screen, (panel_rect.x + 16, panel_rect.y + 12))
         display_name = self.rename_buffer or "\u672a\u547d\u540d"
         TextBlock(display_name, 26, TEXT_COLOR).draw_topleft(screen, (panel_rect.x + 16, panel_rect.y + 42))
@@ -334,11 +298,11 @@ class ContinueScene(BaseScene):
         return None
 
     def _hit_test_action(self, position: tuple[int, int]) -> tuple[str, int] | None:
-        for visible_index, _slot in enumerate(self._visible_slots()):
+        for visible_index, slot in enumerate(self._visible_slots()):
             actual_index = self.scroll_offset + visible_index
-            for action, rect in self._save_action_rects(visible_index).items():
-                if rect.collidepoint(position):
-                    return action, actual_index
+            action = self._save_card(slot, actual_index, visible_index).action_at(position)
+            if action is not None:
+                return action, actual_index
         return None
 
     def _sync_scroll_to_selection(self) -> None:
@@ -351,8 +315,3 @@ class ContinueScene(BaseScene):
 
     def _last_index(self) -> int:
         return len(self.save_slots)
-
-    def _short_text(self, text: str, limit: int) -> str:
-        if len(text) <= limit:
-            return text
-        return text[: limit - 1] + "..."

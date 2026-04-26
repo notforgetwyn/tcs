@@ -11,6 +11,7 @@ from src.core.settings_service import (
 )
 from src.scenes.base_scene import BaseScene
 from src.ui.button import Button
+from src.ui.setting_row import SettingRow
 from src.ui.text import TextBlock
 
 
@@ -90,11 +91,13 @@ class SettingsScene(BaseScene):
             TextBlock(self.app.input_debug.last_key_text, 20).draw_topleft(screen, (16, WINDOW_HEIGHT - 32))
 
     def _draw_speed_row(self, screen: pygame.Surface) -> None:
-        color = (52, 152, 219) if self.selected_index == 0 else TEXT_COLOR
-        prefix = "> " if self.selected_index == 0 else "  "
-        suffix = " <" if self.selected_index == 0 else "  "
-        text = f"{prefix}\u901f\u5ea6: {self._describe_speed()}  {self.settings.move_interval_ms} ms{suffix}"
-        TextBlock(text, 30, color).draw_center(screen, (WINDOW_WIDTH // 2, 112))
+        SettingRow(
+            "\u901f\u5ea6",
+            f"{self._describe_speed()}  {self.settings.move_interval_ms} ms",
+            (WINDOW_WIDTH // 2, 112),
+            selected=self.selected_index == 0,
+            font_size=30,
+        ).draw(screen)
         TextBlock("\u9009\u4e2d\u901f\u5ea6\u540e\u6309 A/D \u6216 \u2190/\u2192 \u8c03\u6574\uff0cEnter \u4fdd\u5b58", 20).draw_center(
             screen,
             (WINDOW_WIDTH // 2, 145),
@@ -106,14 +109,9 @@ class SettingsScene(BaseScene):
             (WINDOW_WIDTH // 2, 188),
         )
         for row_index, (label, action) in enumerate(KEY_BINDING_ROWS, start=1):
-            y = self._row_y(row_index)
-            color = (52, 152, 219) if self.selected_index == row_index else TEXT_COLOR
-            selected = self.selected_index == row_index
             capturing = self.capture_action == action
-            marker = "> " if selected else "  "
-            tail = " <" if selected else "  "
             key_text = "\u7b49\u5f85\u65b0\u6309\u952e..." if capturing else self.app.input_service.binding_text(action)
-            TextBlock(f"{marker}{label}: {key_text}{tail}", 24, color).draw_center(screen, (WINDOW_WIDTH // 2, y))
+            self._setting_row(row_index, label, key_text).draw(screen)
 
     def _draw_back_row(self, screen: pygame.Surface) -> None:
         index = self._back_index()
@@ -217,14 +215,14 @@ class SettingsScene(BaseScene):
             self.selected_index = selected
 
     def _hit_test(self, position: tuple[int, int]) -> int | None:
-        x, y = position
+        x, _y = position
         if not (WINDOW_WIDTH // 2 - 300 <= x <= WINDOW_WIDTH // 2 + 300):
             return None
-        if 92 <= y <= 132:
+        if self._speed_row().contains(position):
             return 0
-        for row_index in range(1, len(KEY_BINDING_ROWS) + 1):
-            row_y = self._row_y(row_index)
-            if row_y - 16 <= y <= row_y + 16:
+        for row_index, (label, action) in enumerate(KEY_BINDING_ROWS, start=1):
+            key_text = self.app.input_service.binding_text(action)
+            if self._setting_row(row_index, label, key_text).contains(position):
                 return row_index
         if self._reset_button_rect().collidepoint(position):
             return self._reset_index()
@@ -234,6 +232,23 @@ class SettingsScene(BaseScene):
 
     def _row_y(self, row_index: int) -> int:
         return 220 + (row_index - 1) * 36
+
+    def _speed_row(self) -> SettingRow:
+        return SettingRow(
+            "\u901f\u5ea6",
+            f"{self._describe_speed()}  {self.settings.move_interval_ms} ms",
+            (WINDOW_WIDTH // 2, 112),
+            selected=self.selected_index == 0,
+            font_size=30,
+        )
+
+    def _setting_row(self, row_index: int, label: str, value: str) -> SettingRow:
+        return SettingRow(
+            label,
+            value,
+            (WINDOW_WIDTH // 2, self._row_y(row_index)),
+            selected=self.selected_index == row_index,
+        )
 
     def _back_index(self) -> int:
         return len(KEY_BINDING_ROWS) + 2
