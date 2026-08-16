@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wslpath \"\\\\\\\\\\\\\\\\wsl.localhost\\\\\\\\Ubuntu\\\\\\\\home\\\\\\\\shihuayue\\\\\\\\codex_project\")",
+      "Bash(wsl ls *)",
+      "Bash(wsl *)",
+      "Bash(cmd.exe *)",
+      "Bash(wsl.exe ~ *)",
+      "Bash(wsl.exe *)",
+      "mcp__MiniMax__understand_image",
+      "Bash(python3 /tmp/fix_stl.py\" 2>&1)"
+    ]
+  }
+}
