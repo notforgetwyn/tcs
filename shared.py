@@ -1,1 +1,1 @@
-shared_value = 0
+shared_value = 2
